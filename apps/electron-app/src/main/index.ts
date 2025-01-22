@@ -47,23 +47,6 @@ function createWindow(): void {
     }
   })
 
-  // Enable acrylic effect for Windows
-  if (process.platform === 'win32') {
-    try {
-      const { setWindowEffect } = require('electron-acrylic-window')
-      setWindowEffect({
-        window: mainWindow,
-        effect: 'acrylic',
-        useCustomWindowRefreshMethod: true,
-        theme: 'dark',
-        maximumRefreshRate: 60,
-        gradientColor: '#070809BB'
-      })
-    } catch (error) {
-      console.error('Failed to apply acrylic effect:', error)
-    }
-  }
-
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
   })

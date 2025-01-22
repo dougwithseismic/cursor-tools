@@ -18,7 +18,6 @@ export function NotepadList({ workspaceId }: NotepadListProps): JSX.Element {
   const { notepads, isLoading, error, createNotepad, updateNotepad, deleteNotepad } =
     useNotepads(workspaceId)
   const [newNotepad, setNewNotepad] = useState({ name: '', text: '' })
-  const [editingNotepad, setEditingNotepad] = useState<Notepad | null>(null)
 
   const handleCreateNotepad = async (): Promise<void> => {
     try {
@@ -29,10 +28,13 @@ export function NotepadList({ workspaceId }: NotepadListProps): JSX.Element {
     }
   }
 
-  const handleUpdateNotepad = async (notepad: Notepad): Promise<void> => {
+  const handleUpdateNotepad = async (notepad: {
+    id: string
+    name: string
+    text: string
+  }): Promise<void> => {
     try {
-      await updateNotepad({ id: notepad.id, name: notepad.name, text: notepad.text })
-      setEditingNotepad(null)
+      await updateNotepad(notepad)
     } catch (err) {
       // Error is handled by the hook
     }
@@ -64,8 +66,8 @@ export function NotepadList({ workspaceId }: NotepadListProps): JSX.Element {
       {/* Main Content Area */}
       <div className="flex-1 min-h-0">
         <div className="flex flex-col h-full gap-4 p-4 pb-0 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-muted [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30">
-          {/* Create/Edit Form */}
-          {(newNotepad.name !== '' || editingNotepad) && (
+          {/* Create Form */}
+          {newNotepad.name !== '' && (
             <div className="shrink-0">
               <div className="p-4 border rounded-lg bg-card">
                 <div className="space-y-4">
@@ -79,12 +81,8 @@ export function NotepadList({ workspaceId }: NotepadListProps): JSX.Element {
                     <input
                       type="text"
                       id="name"
-                      value={editingNotepad?.name || newNotepad.name}
-                      onChange={(e) =>
-                        editingNotepad
-                          ? setEditingNotepad({ ...editingNotepad, name: e.target.value })
-                          : setNewNotepad({ ...newNotepad, name: e.target.value })
-                      }
+                      value={newNotepad.name}
+                      onChange={(e) => setNewNotepad({ ...newNotepad, name: e.target.value })}
                       className="block w-full mt-1 text-xs rounded-md border-input bg-background focus:ring-primary focus:border-primary"
                     />
                   </div>
@@ -98,30 +96,21 @@ export function NotepadList({ workspaceId }: NotepadListProps): JSX.Element {
                     <textarea
                       id="text"
                       rows={4}
-                      value={editingNotepad?.text || newNotepad.text}
-                      onChange={(e) =>
-                        editingNotepad
-                          ? setEditingNotepad({ ...editingNotepad, text: e.target.value })
-                          : setNewNotepad({ ...newNotepad, text: e.target.value })
-                      }
+                      value={newNotepad.text}
+                      onChange={(e) => setNewNotepad({ ...newNotepad, text: e.target.value })}
                       className="block w-full mt-1 text-xs rounded-md border-input bg-background focus:ring-primary focus:border-primary"
                     />
                   </div>
                   <div className="flex gap-2">
                     <button
-                      onClick={() =>
-                        editingNotepad ? handleUpdateNotepad(editingNotepad) : handleCreateNotepad()
-                      }
+                      onClick={handleCreateNotepad}
                       disabled={isLoading}
                       className="px-3 py-1 text-xs font-medium border border-transparent rounded-md text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
                     >
-                      {editingNotepad ? 'Save' : 'Create'}
+                      Create
                     </button>
                     <button
-                      onClick={() => {
-                        setEditingNotepad(null)
-                        setNewNotepad({ name: '', text: '' })
-                      }}
+                      onClick={() => setNewNotepad({ name: '', text: '' })}
                       className="px-3 py-1 text-xs font-medium border rounded-md text-card-foreground bg-card border-input hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                     >
                       Cancel
@@ -146,7 +135,7 @@ export function NotepadList({ workspaceId }: NotepadListProps): JSX.Element {
               <Notepad
                 key={notepad.id}
                 notepad={notepad}
-                onEdit={() => setEditingNotepad(notepad)}
+                onEdit={handleUpdateNotepad}
                 onDelete={() => handleDeleteNotepad(notepad.id)}
                 isLoading={isLoading}
               />

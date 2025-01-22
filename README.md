@@ -1,84 +1,150 @@
-# Turborepo starter
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub stars](https://img.shields.io/github/stars/withseismic/cursor-tools?style=social)](https://github.com/withseismic/cursor-tools/stargazers)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
+[![Electron](https://img.shields.io/badge/Electron-28.0-blue.svg)](https://www.electronjs.org/)
+[![React](https://img.shields.io/badge/React-18.0-blue.svg)](https://reactjs.org/)
+[![Discord](https://img.shields.io/badge/Discord-Join%20Chat-7289da.svg)](https://discord.gg/cursor)
 
-This Turborepo starter is maintained by the Turborepo core team.
+[🔗 Reddit Discussion](https://www.reddit.com/r/cursor/comments/1i77m4d/notepads_manager_for_cursor/) | [💬 Discord Community](https://discord.gg/BX25FcS53N)
 
-## Using this example
+# Cursor Tools
 
-Run the following command:
+A powerful desktop application for managing and enhancing your Cursor IDE notepads, built with Electron, React, and TypeScript. (Ish. It's a proof of concept that shows you how to hook into Cursor's workspace / global settings and do some cool stuff.)
 
-```sh
-npx create-turbo@latest
+![Cursor Tools](cursor-tools.png)
+
+## Overview
+
+Cursor Tools provides a robust suite of utilities for managing your Cursor IDE notepads, allowing you to backup, sync, and organize your development notes across workspaces. Built with modern technologies and best practices, it offers a seamless integration with your Cursor IDE workflow.
+
+### Key Features
+
+#### 1. Notepad Management
+
+- **Create & Edit**: Create new notepads with rich content and edit existing ones
+- **Organization**: Group related notepads and manage them efficiently
+- **Search & Filter**: Quickly find notepads across all workspaces
+- **Backup & Sync**: Automatically backup your Cursor notepads across workspaces
+- **Import/Export**: Share notepads between workspaces or with team members
+
+#### 2. Smart Templates
+
+Pre-built notepad templates for common development workflows:
+
+- Git branch and workflow best practices
+- Test-Driven Development (TDD) guides
+- AI-assisted development patterns
+- Documentation templates
+- Code review checklists
+- Performance optimization guides
+- Security best practices
+- Accessibility guidelines
+- Architecture planning templates
+
+#### 3. Workspace Integration
+
+- **Multi-Workspace Support**: Manage notepads across multiple Cursor workspaces
+- **Workspace Migration**: Easily copy notepads between workspaces
+- **Context Awareness**: Notepads maintain references to relevant files and folders
+- **Persistent Storage**: Reliable SQLite-based storage for all your notes
+
+#### 4. Advanced Features
+
+- **Version History**: Track changes to your notepads over time
+- **Rich Context**: Link notepads to files, folders, and git commits
+- **Smart References**: Maintain connections to external resources and documentation
+- **Customizable Layout**: Adjust the UI layout to match your workflow
+
+### Installation
+
+```bash
+# Install dependencies
+pnpm install
+
+# Start development
+pnpm dev:electron
+
+# Build for your platform
+pnpm build:win    # Windows
+pnpm build:mac    # macOS
+pnpm build:linux  # Linux
 ```
 
-## What's inside?
+### Project Structure
 
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
+This project uses [Turborepo](https://turbo.build/repo) and follows modern development practices:
 
 ```
-cd my-turborepo
-pnpm build
+apps/
+  ├── electron-app/        # Main desktop application
+  │   ├── src/
+  │   │   ├── main/       # Electron main process
+  │   │   ├── renderer/   # React-based UI
+  │   │   └── preload/    # Preload scripts
+  │   └── ...
+packages/
+  ├── eslint-config/      # Shared ESLint configuration
+  └── typescript-config/  # Shared TypeScript configuration
 ```
 
-### Develop
+### Technology Stack
 
-To develop all apps and packages, run the following command:
+- **TypeScript**: For type-safe code
+- **Electron**: Desktop application framework
+- **React**: UI components and state management
+- **SQLite**: Reliable data persistence
+- **Tailwind CSS**: Modern styling
+- **ESLint & Prettier**: Code quality tools
 
+### API Documentation
+
+#### Notepad Management
+
+```typescript
+// Create a new notepad
+const notepad = await notepadManager.createNotepad({
+  name: "My Notepad",
+  text: "Initial content"
+});
+
+// Get all notepads
+const notepads = await notepadManager.getAll();
+
+// Get a specific notepad
+const notepad = await notepadManager.getNotepad(id);
+
+// Update notepad content
+await notepad.setText("Updated content");
+
+// Delete a notepad
+await notepadManager.deleteNotepad(id);
 ```
-cd my-turborepo
-pnpm dev
+
+#### Workspace Operations
+
+```typescript
+// Get all workspaces
+const workspaces = await workspaceManager.getWorkspaces();
+
+// Get a specific workspace
+const workspace = await workspaceManager.getWorkspace(id);
+
+// Access workspace storage
+await workspace.set("key", value);
+const value = await workspace.get("key");
 ```
 
-### Remote Caching
+### Contributing
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+We welcome contributions! Please follow these steps:
 
-Turborepo can use a technique known as [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
+Please ensure your code follows our style guidelines and includes appropriate tests.
 
-```
-cd my-turborepo
-npx turbo login
-```
+### License
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-npx turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turbo.build/repo/docs/core-concepts/monorepos/running-tasks)
-- [Caching](https://turbo.build/repo/docs/core-concepts/caching)
-- [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching)
-- [Filtering](https://turbo.build/repo/docs/core-concepts/monorepos/filtering)
-- [Configuration Options](https://turbo.build/repo/docs/reference/configuration)
-- [CLI Usage](https://turbo.build/repo/docs/reference/command-line-reference)
+MIT

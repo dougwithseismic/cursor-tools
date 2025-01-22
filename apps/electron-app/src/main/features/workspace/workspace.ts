@@ -5,14 +5,34 @@ import { DatabaseError, JsonError } from './errors'
 import { WorkspaceInfo } from './workspace-manager'
 
 /**
- * Represents a workspace in the Cursor application, providing persistent storage and notepad management.
- * Each workspace corresponds to a SQLite database file and manages data storage through key-value pairs.
+ * Represents a workspace in the Cursor application.
+ * Provides persistent storage and notepad management functionality.
+ *
+ * Key features:
+ * - SQLite-based persistent storage
+ * - Key-value data storage
+ * - Notepad management
+ * - Error handling with custom error types
+ *
+ * Each workspace corresponds to a SQLite database file and manages data storage
+ * through key-value pairs. The workspace also provides access to notepad
+ * management functionality through the notepadManager property.
  *
  * @example
  * ```typescript
+ * // Create a workspace
  * const workspace = new Workspace({ workspace: workspaceInfo });
+ *
+ * // Store data
  * await workspace.set('myKey', { data: 'value' });
+ *
+ * // Retrieve data
  * const data = await workspace.get('myKey');
+ *
+ * // Work with notepads
+ * const notepad = await workspace.notepadManager.createNotepad({
+ *   name: 'New Notepad'
+ * });
  * ```
  */
 export class Workspace {
@@ -24,8 +44,10 @@ export class Workspace {
 
   /**
    * Creates a new Workspace instance.
+   * Initializes workspace properties and notepad manager.
+   *
    * @param {Object} params - The workspace initialization parameters
-   * @param {WorkspaceInfo} params.workspace - The workspace information containing id, paths, and configuration
+   * @param {WorkspaceInfo} params.workspace - Workspace configuration containing id, paths, and settings
    */
   constructor({ workspace }: { workspace: WorkspaceInfo }) {
     this.id = workspace.id
@@ -37,6 +59,15 @@ export class Workspace {
   /**
    * Gets or initializes the SQLite database connection.
    * Creates the ItemTable if it doesn't exist.
+   *
+   * The database schema:
+   * ```sql
+   * CREATE TABLE IF NOT EXISTS ItemTable (
+   *   key TEXT PRIMARY KEY,
+   *   value TEXT
+   * )
+   * ```
+   *
    * @private
    * @returns {Promise<Database>} The database connection
    * @throws {DatabaseError} If database connection or initialization fails
@@ -68,11 +99,26 @@ export class Workspace {
 
   /**
    * Retrieves a value from the workspace storage by key.
+   * Values are stored as JSON strings and parsed upon retrieval.
+   *
    * @template T - The expected type of the stored value
    * @param {string} key - The key to look up
    * @returns {Promise<T | null>} The stored value parsed from JSON, or null if not found
    * @throws {DatabaseError} If database query fails
    * @throws {JsonError} If JSON parsing fails
+   *
+   * @example
+   * ```typescript
+   * interface UserData {
+   *   name: string;
+   *   preferences: Record<string, unknown>;
+   * }
+   *
+   * const userData = await workspace.get<UserData>('userData');
+   * if (userData) {
+   *   console.log(userData.name);
+   * }
+   * ```
    */
   async get<T>(key: string): Promise<T | null> {
     try {
@@ -101,12 +147,24 @@ export class Workspace {
 
   /**
    * Stores a value in the workspace storage.
+   * Values are JSON stringified before storage.
+   *
    * @template T - The type of the value being stored
    * @param {string} key - The key under which to store the value
-   * @param {T} value - The value to store (will be JSON stringified)
+   * @param {T} value - The value to store
    * @returns {Promise<void>}
    * @throws {DatabaseError} If database operation fails
    * @throws {JsonError} If JSON stringification fails
+   *
+   * @example
+   * ```typescript
+   * await workspace.set('userData', {
+   *   name: 'John Doe',
+   *   preferences: {
+   *     theme: 'dark'
+   *   }
+   * });
+   * ```
    */
   async set<T>(key: string, value: T): Promise<void> {
     let jsonValue: string
@@ -134,9 +192,18 @@ export class Workspace {
 
   /**
    * Deletes a value from the workspace storage.
+   *
    * @param {string} key - The key to delete
    * @returns {Promise<boolean>} True if a value was deleted, false if the key didn't exist
    * @throws {DatabaseError} If database operation fails
+   *
+   * @example
+   * ```typescript
+   * const wasDeleted = await workspace.delete('userData');
+   * if (wasDeleted) {
+   *   console.log('User data successfully deleted');
+   * }
+   * ```
    */
   async delete(key: string): Promise<boolean> {
     try {
@@ -154,9 +221,17 @@ export class Workspace {
 
   /**
    * Checks if a key exists in the workspace storage.
+   *
    * @param {string} key - The key to check
    * @returns {Promise<boolean>} True if the key exists, false otherwise
    * @throws {DatabaseError} If database query fails
+   *
+   * @example
+   * ```typescript
+   * if (await workspace.has('userData')) {
+   *   const userData = await workspace.get('userData');
+   * }
+   * ```
    */
   async has(key: string): Promise<boolean> {
     try {
@@ -174,8 +249,18 @@ export class Workspace {
 
   /**
    * Retrieves all keys present in the workspace storage.
+   *
    * @returns {Promise<string[]>} Array of all keys in storage
    * @throws {DatabaseError} If database query fails
+   *
+   * @example
+   * ```typescript
+   * const allKeys = await workspace.keys();
+   * for (const key of allKeys) {
+   *   const value = await workspace.get(key);
+   *   console.log(`${key}: ${value}`);
+   * }
+   * ```
    */
   async keys(): Promise<string[]> {
     try {
@@ -193,8 +278,15 @@ export class Workspace {
 
   /**
    * Clears all data from the workspace storage.
+   *
    * @returns {Promise<void>}
    * @throws {DatabaseError} If database operation fails
+   *
+   * @example
+   * ```typescript
+   * // Clear all stored data
+   * await workspace.clear();
+   * ```
    */
   async clear(): Promise<void> {
     try {
@@ -212,8 +304,15 @@ export class Workspace {
   /**
    * Closes the database connection.
    * Should be called when the workspace is no longer needed.
+   *
    * @returns {Promise<void>}
    * @throws {DatabaseError} If database close operation fails
+   *
+   * @example
+   * ```typescript
+   * // Clean up workspace resources
+   * await workspace.close();
+   * ```
    */
   async close(): Promise<void> {
     if (this.dbConnection) {

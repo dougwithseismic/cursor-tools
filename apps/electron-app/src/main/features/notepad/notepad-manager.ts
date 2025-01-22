@@ -5,6 +5,7 @@ import { DataValidationError, NotepadError } from '../workspace/errors'
 
 /**
  * Structure for notepad data storage.
+ * Defines the format for persisting notepad data in the workspace.
  */
 interface NotepadData {
   /** Version number of the notepad data format */
@@ -15,6 +16,7 @@ interface NotepadData {
 
 /**
  * Input parameters for creating a new notepad.
+ * Required configuration for notepad creation.
  */
 export interface CreateNotepadInput {
   /** Display name for the new notepad */
@@ -24,9 +26,11 @@ export interface CreateNotepadInput {
 }
 
 /**
- * Validates notepad data structure.
+ * Type guard to validate notepad data structure.
+ * Ensures data loaded from storage matches expected format.
+ *
  * @param {unknown} data - The data to validate
- * @returns {data is NotepadData} Type guard indicating if the data is valid
+ * @returns {boolean} True if data matches NotepadData structure
  */
 function isValidNotepadData(data: unknown): data is NotepadData {
   if (!data || typeof data !== 'object') return false
@@ -42,12 +46,31 @@ function isValidNotepadData(data: unknown): data is NotepadData {
  * Manages notepad instances within a workspace.
  * Handles notepad creation, retrieval, and lifecycle management.
  *
+ * Key responsibilities:
+ * - Creating new notepads with proper initialization
+ * - Managing notepad persistence
+ * - Retrieving existing notepads
+ * - Handling notepad deletion
+ * - Maintaining data consistency
+ *
  * @example
  * ```typescript
  * const manager = new NotepadManager(workspace);
- * const notepad = await manager.createNotepad({ name: 'New Notepad' });
+ *
+ * // Create a new notepad
+ * const notepad = await manager.createNotepad({
+ *   name: 'New Notepad',
+ *   text: 'Initial content'
+ * });
+ *
+ * // Get all notepads
+ * const notepads = await manager.getAll();
+ *
+ * // Get a specific notepad
  * const existingNotepad = await manager.getNotepad('notepad-id');
- * const allNotepads = await manager.getAll();
+ *
+ * // Delete a notepad
+ * await manager.deleteNotepad('notepad-id');
  * ```
  */
 export class NotepadManager {
@@ -62,6 +85,7 @@ export class NotepadManager {
   /**
    * Retrieves the current notepad data from storage.
    * Creates default data structure if none exists.
+   *
    * @private
    * @returns {Promise<NotepadData>} The current notepad data
    * @throws {DataValidationError} If stored data is invalid
@@ -86,6 +110,7 @@ export class NotepadManager {
   /**
    * Creates a default context for new notepads.
    * Initializes all context fields with empty values.
+   *
    * @private
    * @returns {NotepadContext} A new default context object
    */
@@ -134,10 +159,25 @@ export class NotepadManager {
   /**
    * Creates a new notepad with the specified configuration.
    * Initializes the notepad with default context and a single chat tab.
+   *
+   * The creation process:
+   * 1. Validates input parameters
+   * 2. Generates unique IDs for notepad components
+   * 3. Creates initial notepad structure
+   * 4. Persists the notepad to storage
+   *
    * @param {CreateNotepadInput} input - Configuration for the new notepad
    * @returns {Promise<Notepad>} The newly created notepad instance
    * @throws {NotepadError} If notepad creation or save fails
    * @throws {DataValidationError} If input validation fails
+   *
+   * @example
+   * ```typescript
+   * const notepad = await manager.createNotepad({
+   *   name: 'Project Notes',
+   *   text: 'Initial project planning'
+   * });
+   * ```
    */
   async createNotepad(input: CreateNotepadInput): Promise<Notepad> {
     if (!input.name || input.name.trim().length === 0) {
@@ -192,10 +232,20 @@ export class NotepadManager {
 
   /**
    * Retrieves a notepad by its ID.
+   * Returns null if no notepad exists with the given ID.
+   *
    * @param {string} id - The unique identifier of the notepad
    * @returns {Promise<Notepad | null>} The notepad instance if found, null otherwise
    * @throws {NotepadError} If notepad retrieval fails
    * @throws {DataValidationError} If stored notepad data is invalid
+   *
+   * @example
+   * ```typescript
+   * const notepad = await manager.getNotepad('notepad-123');
+   * if (notepad) {
+   *   await notepad.setText('Updated content');
+   * }
+   * ```
    */
   async getNotepad(id: string): Promise<Notepad | null> {
     if (!id || typeof id !== 'string') {
@@ -218,9 +268,19 @@ export class NotepadManager {
 
   /**
    * Retrieves all notepads in the workspace.
+   * Loads and validates notepad data from storage.
+   *
    * @returns {Promise<Notepad[]>} Array of all notepad instances
    * @throws {NotepadError} If notepad retrieval fails
    * @throws {DataValidationError} If stored notepad data is invalid
+   *
+   * @example
+   * ```typescript
+   * const notepads = await manager.getAll();
+   * for (const notepad of notepads) {
+   *   console.log(notepad.data.name);
+   * }
+   * ```
    */
   async getAll(): Promise<Notepad[]> {
     try {
@@ -236,10 +296,20 @@ export class NotepadManager {
 
   /**
    * Deletes a notepad by its ID.
+   * Removes the notepad from storage if it exists.
+   *
    * @param {string} id - The unique identifier of the notepad to delete
    * @returns {Promise<boolean>} True if the notepad was found and deleted, false otherwise
    * @throws {NotepadError} If notepad deletion fails
    * @throws {DataValidationError} If notepad ID is invalid
+   *
+   * @example
+   * ```typescript
+   * const wasDeleted = await manager.deleteNotepad('notepad-123');
+   * if (wasDeleted) {
+   *   console.log('Notepad successfully deleted');
+   * }
+   * ```
    */
   async deleteNotepad(id: string): Promise<boolean> {
     if (!id || typeof id !== 'string') {

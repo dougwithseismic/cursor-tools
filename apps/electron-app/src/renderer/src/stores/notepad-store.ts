@@ -5,6 +5,7 @@ export interface Notepad {
   name: string
   text: string
   createdAt: number
+  updatedAt?: number
   workspaceId: string
 }
 

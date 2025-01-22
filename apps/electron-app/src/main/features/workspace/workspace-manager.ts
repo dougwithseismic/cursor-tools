@@ -5,6 +5,7 @@ import { Workspace } from './workspace'
 
 /**
  * Configuration object for workspace folder structure.
+ * Contains the path to the workspace folder.
  */
 interface WorkspaceJson {
   folder: string
@@ -12,6 +13,7 @@ interface WorkspaceJson {
 
 /**
  * Information about a workspace instance.
+ * Contains all necessary paths and identifiers for workspace operations.
  */
 export interface WorkspaceInfo {
   /** Unique identifier for the workspace */
@@ -25,6 +27,11 @@ export interface WorkspaceInfo {
 /**
  * Manages multiple workspaces in the Cursor application.
  * Handles workspace discovery, initialization, and lifecycle management.
+ *
+ * The WorkspaceManager is responsible for:
+ * - Loading workspaces from the filesystem
+ * - Managing workspace instances
+ * - Providing access to individual workspaces
  *
  * @example
  * ```typescript
@@ -41,6 +48,8 @@ export class WorkspaceManager {
   /**
    * Creates a new WorkspaceManager instance.
    * Initializes the workspace storage path in the user's app data directory.
+   *
+   * @throws {Error} If unable to access app data directory
    */
   constructor() {
     this.workspaces = []
@@ -50,6 +59,7 @@ export class WorkspaceManager {
   /**
    * Initializes the workspace manager by loading all available workspaces.
    * Should be called before using any other methods.
+   *
    * @returns {Promise<void>}
    * @throws {Error} If workspace loading fails
    */
@@ -60,6 +70,13 @@ export class WorkspaceManager {
   /**
    * Loads all workspaces from the filesystem.
    * Reads workspace configuration files and initializes workspace instances.
+   *
+   * The loading process:
+   * 1. Reads all directories in the workspace path
+   * 2. For each directory, attempts to load workspace.json
+   * 3. Validates and parses workspace configuration
+   * 4. Creates Workspace instances for valid configurations
+   *
    * @private
    * @returns {Promise<void>}
    * @throws {Error} If workspace directory cannot be read or workspace loading fails
