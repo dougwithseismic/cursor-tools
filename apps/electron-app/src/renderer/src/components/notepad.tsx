@@ -1,6 +1,7 @@
 import ReactMarkdown from 'react-markdown'
 import type { Notepad as NotepadType } from '../stores/notepad-store'
-import { Pencil, Trash } from 'lucide-react'
+import { Pencil, Trash, ChevronDown, ChevronUp } from 'lucide-react'
+import { useState } from 'react'
 
 interface NotepadProps {
   notepad: NotepadType
@@ -10,11 +11,19 @@ interface NotepadProps {
 }
 
 export function Notepad({ notepad, onEdit, onDelete, isLoading }: NotepadProps): JSX.Element {
+  const [isExpanded, setIsExpanded] = useState(false)
+
   return (
     <div className="p-4 space-y-4 transition-colors border rounded-lg bg-card border-input hover:border-primary/50">
       <div className="flex items-center justify-between">
         <h4 className="text-lg font-medium text-card-foreground">{notepad.name}</h4>
         <div className="flex gap-2">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center gap-1 p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-accent/50 transition-colors"
+          >
+            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
           <button
             onClick={onEdit}
             className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-accent/50 transition-colors"
@@ -30,7 +39,9 @@ export function Notepad({ notepad, onEdit, onDelete, isLoading }: NotepadProps):
           </button>
         </div>
       </div>
-      <div className="prose-sm prose prose-invert max-w-none overflow-y-auto max-h-[500px] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-muted [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30">
+      <div
+        className={`prose-sm prose prose-invert max-w-none overflow-y-auto ${isExpanded ? 'max-h-none' : 'max-h-[200px]'} [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-muted [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30`}
+      >
         <ReactMarkdown
           components={{
             h1: ({ children }) => <h1 className="mb-4 text-xl font-bold">{children}</h1>,

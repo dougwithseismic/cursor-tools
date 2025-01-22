@@ -63,7 +63,7 @@ export function NotepadList({ workspaceId }: NotepadListProps): JSX.Element {
 
       {/* Main Content Area */}
       <div className="flex-1 min-h-0">
-        <div className="flex flex-col h-full gap-4 p-4 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-muted [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30">
+        <div className="flex flex-col h-full gap-4 p-4 pb-0 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-muted [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30">
           {/* Create/Edit Form */}
           {(newNotepad.name !== '' || editingNotepad) && (
             <div className="shrink-0">
