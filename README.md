@@ -1,5 +1,5 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub stars](https://img.shields.io/github/stars/withseismic/cursor-tools?style=social)](https://github.com/withseismic/cursor-tools/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/dougwithseismic/cursor-tools?style=social)](https://github.com/dougwithseismic/cursor-tools/stargazers)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 [![Electron](https://img.shields.io/badge/Electron-28.0-blue.svg)](https://www.electronjs.org/)
 [![React](https://img.shields.io/badge/React-18.0-blue.svg)](https://reactjs.org/)
@@ -12,6 +12,33 @@
 A powerful desktop application for managing and enhancing your Cursor IDE notepads, built with Electron, React, and TypeScript. (Ish. It's a proof of concept that shows you how to hook into Cursor's workspace / global settings and do some cool stuff.)
 
 ![Cursor Tools](cursor-tools.png)
+
+## Quick Start: Finding Your Notepads
+
+Lost your Cursor notepads? Here's where they live:
+
+```bash
+# Windows
+%AppData%/Roaming/Cursor/User/workspaceStorage/{workspace_id}/state.vscdb
+
+# macOS
+~/Library/Application Support/Cursor/User/workspaceStorage/{workspace_id}/state.vscdb
+```
+
+Your notepads are stored in a SQLite database under two keys:
+
+- `notepadData`
+- `notepad.reactiveStorageId`
+
+Want to explore? Get [DB Browser for SQLite](https://sqlitebrowser.org/) and run:
+
+```sql
+SELECT * FROM ItemTable WHERE key IN ('notepadData', 'notepad.reactiveStorageId');
+```
+
+⚠️ **Important**: Close DB Browser before opening Cursor to avoid file permission conflicts.
+
+📚 [Read the full technical deep-dive](docs/articles/cursor-notepads-deep-dive.md) to learn how we discovered this and built tools around it.
 
 ## Overview
 
