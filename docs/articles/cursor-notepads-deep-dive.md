@@ -74,7 +74,7 @@ Cursor is built on VSCode's architecture, which means it's an Electron applicati
 graph TD
     A[AppData/Roaming/Cursor] --> B[User]
     B --> C[workspaceStorage]
-    C --> D[{workspace_id}]
+    C --> D[workspace_id]
     D --> E[state.vscdb]
     E --> F[ItemTable]
     F --> G[notepad.reactiveStorageId]
@@ -91,8 +91,8 @@ First, let's break down what we know about Cursor:
 graph LR
     A[Cursor] --> B[VSCode Fork]
     B --> C[Electron App]
-    C --> D[Windows: %AppData%]
-    C --> E[macOS: ~/Library/Application Support]
+    C --> D[Windows AppData]
+    C --> E[macOS Library]
 ```
 
 The key insights:
@@ -178,8 +178,8 @@ Here's where it got interesting. After finding the data:
 
 ```mermaid
 sequenceDiagram
-    participant DB as Database
-    participant Viewer as DB Viewer
+    participant DB as SQLite DB
+    participant Viewer as DB Browser
     participant Cursor as Cursor IDE
     
     Note over DB: Initial State
