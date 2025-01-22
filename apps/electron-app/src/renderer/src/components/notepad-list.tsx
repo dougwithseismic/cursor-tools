@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, forwardRef } from 'react'
 import { useNotepads } from '../hooks/use-notepads'
 import { Plus, Search } from 'lucide-react'
 import { Notepad as NotepadComponent } from './notepad'
-import { FixedSizeList as List } from 'react-window'
+import { VariableSizeList as List } from 'react-window'
 import type { Notepad } from '../stores/notepad-store'
 
 interface NotepadListProps {
@@ -17,6 +17,7 @@ interface NotepadRowProps {
     onEdit: (notepad: { id: string; name: string; text: string }) => void
     onDelete: (id: string) => void
     isLoading: boolean
+    setSize: (index: number, size: number) => void
   }
 }
 
@@ -25,24 +26,25 @@ const OuterElement = forwardRef<HTMLDivElement, React.HTMLProps<HTMLDivElement>>
   <div
     ref={ref}
     {...props}
-    className="[&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-muted [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30"
+    className="flex flex-col gap-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-muted [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30"
   />
 ))
 OuterElement.displayName = 'OuterElement'
 
 const NotepadRow = ({ index, style, data }: NotepadRowProps): JSX.Element => {
-  const { notepads, onEdit, onDelete, isLoading } = data
+  const { notepads, onEdit, onDelete, isLoading, setSize } = data
   const notepad = notepads[index]
+  const rowRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (rowRef.current) {
+      setSize(index, rowRef.current.getBoundingClientRect().height)
+    }
+  }, [setSize, index, notepad.text, notepad.name])
 
   return (
-    <div
-      style={{
-        ...style,
-        height: `${(style.height as number) - 16}px`,
-        top: `${(style.top as number) + index * 16}px`
-      }}
-    >
-      <div className="p-2">
+    <div style={style}>
+      <div ref={rowRef} className="p-2">
         <NotepadComponent
           key={notepad.id}
           notepad={notepad}
@@ -62,6 +64,19 @@ export function NotepadList({ workspaceId }: NotepadListProps): JSX.Element {
   const [searchQuery, setSearchQuery] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
   const [listHeight, setListHeight] = useState(0)
+  const sizeMap = useRef<{ [key: number]: number }>({})
+  const listInstance = useRef<List>(null)
+
+  const getItemSize = (index: number): number => {
+    return sizeMap.current[index] || 100 // Default height
+  }
+
+  const setItemSize = (index: number, size: number): void => {
+    sizeMap.current[index] = size
+    if (listInstance.current) {
+      listInstance.current.resetAfterIndex(index)
+    }
+  }
 
   useEffect(() => {
     const updateHeight = (): void => {
@@ -208,16 +223,18 @@ export function NotepadList({ workspaceId }: NotepadListProps): JSX.Element {
           {/* Virtualized Notepads List */}
           {listHeight > 0 && (
             <List
+              ref={listInstance}
               height={listHeight}
               itemCount={filteredNotepads.length}
-              itemSize={266}
+              itemSize={getItemSize}
               width="100%"
               outerElementType={OuterElement}
               itemData={{
                 notepads: filteredNotepads,
                 onEdit: handleUpdateNotepad,
                 onDelete: handleDeleteNotepad,
-                isLoading
+                isLoading,
+                setSize: setItemSize
               }}
             >
               {NotepadRow}
