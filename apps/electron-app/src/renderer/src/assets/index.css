@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Dark technical theme */
+    --background: 220 20% 4%;
+    --foreground: 220 20% 80%;
+
+    /* Muted tones for secondary elements */
+    --muted: 220 20% 12%;
+    --muted-foreground: 220 20% 60%;
+
+    /* Subtle accents */
+    --accent: 220 20% 16%;
+    --accent-foreground: 220 20% 85%;
+
+    /* Card and surface colors */
+    --card: 220 20% 8%;
+    --card-foreground: 220 20% 85%;
+
+    /* Popover colors */
+    --popover: 220 20% 6%;
+    --popover-foreground: 220 20% 80%;
+
+    /* Border and input colors */
+    --border: 220 20% 16%;
+    --input: 220 20% 16%;
+
+    /* Primary action colors - using a blue tint */
+    --primary: 220 70% 60%;
+    --primary-foreground: 220 20% 98%;
+
+    /* Secondary action colors */
+    --secondary: 220 20% 16%;
+    --secondary-foreground: 220 20% 85%;
+
+    /* Destructive action colors */
+    --destructive: 0 70% 40%;
+    --destructive-foreground: 220 20% 98%;
+
+    /* Ring color for focus states */
+    --ring: 220 70% 60%;
+
+    /* Border radius */
+    --radius: 0.25rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+      'Courier New', monospace;
+    @apply text-sm antialiased;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Technical typography scale */
+  h1 {
+    @apply text-xl font-medium tracking-tight;
+  }
+  h2 {
+    @apply text-lg font-medium tracking-tight;
+  }
+  h3 {
+    @apply text-base font-medium tracking-tight;
+  }
+  h4 {
+    @apply text-sm font-medium tracking-tight;
+  }
+
+  /* Code-like inputs */
+  input,
+  textarea,
+  select {
+    @apply font-mono text-sm;
+  }
+
+  /* Technical buttons */
+  button {
+    @apply font-mono text-xs tracking-wide uppercase;
+  }
+}
+
+/* Electron window dragging */
+.app-drag-region {
+  -webkit-app-region: drag;
+}
+
+.app-no-drag {
+  -webkit-app-region: no-drag;
+}

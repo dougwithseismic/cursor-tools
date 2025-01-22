@@ -4,8 +4,11 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
+    "dev:electron": "turbo dev --filter=electron-app",
     "lint": "turbo lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "test": "turbo test",
+    "test:watch": "turbo test -- --watch"
   },
   "devDependencies": {
     "prettier": "^3.2.5",
