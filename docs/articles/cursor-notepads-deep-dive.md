@@ -25,27 +25,25 @@ But there's a catch: these powerful tools are locked to individual workspaces. C
 
 ## The Problem
 
-It started with a simple folder rename. One morning, I opened my newly renamed project in Cursor IDE, and all my carefully crafted notepads were gone. Not just any notepads – these were my collection of AI prompts, code snippets, and project documentation that I'd been refining for weeks.
+It started with a simple folder rename. One morning, I opened my newly renamed project in Cursor IDE, and all my carefully crafted notepads and settings were gone. Not just any notepads – these were my collection of AI prompts, code snippets, and project documentation that I'd been refining for near on months, now - inheriting the best from previous projects and refining them over a very long career of FAFO-induced stupor.
 
 The original discussion on [Cursor's forum](https://forum.cursor.com/t/where-are-notepads-stored/18659/10) showed I wasn't alone. Many developers were looking for ways to back up and manage their notepads, but there were no solutions available.
 
 ## A Word on Problem-Solving
 
-Like all the most engaging rabbit holes, this one started with a hunch. I knew I wanted to get at my Notepad data, but other than that, an internet search turned up pretty much zero. If you're coming to this article off the back of your own search, I hope it helps out.
+Like all the best rabbit holes, this one started with a hunch. I knew I wanted to do the thing, and nobody had done it before, so I had the choice of waiting for someone else, or to be the one that did it.
 
-When it comes to problem-solving, here's how my head normally works... very much like everyone else, but with the added benefit/hindrance of being zealously undeterred where others might give up. I am sunk cost fallacy manifest.
+A good problem is a rare but powerful thought. It's much like good marketing. A good problem:
 
-Much like good marketing, a good problem is a rare but powerful thought. A good problem:
+→ Sets the stage with just enough detail to nudge your thoughts in the right direction.
 
-- Sets the stage with just enough detail to nudge your thoughts in the right direction
-- Lets your own inquisitive thoughts fill in the gaps
-- Sees you, the protagonist, arrive at the gates of the dungeon, armed only with your knowledge, a poorly scribbled map from previous travelers, and a level one wooden sword
+→ Lets your own inquisitive thoughts fill in the gaps and make your own journey.
 
-The most persuasive problems are the ones that get in your future self's head. They manifest themselves not just as a bug to crush or a decision to make, but as an opportunity that lights a fire under your ass to do the hard work.
+→ Sees you, the protagonist, arrive at the gates of the dungeon, armed not only with your ambition and a poorly scribbled map from previous travelers, but with all the gear you accumulated from (un)successful runs in your career.
 
-As someone with an impossibly short attention span, no real direction outside "I enjoy building things", and an overindex of experience solving incredibly niche problems that nobody cares about - this is one of those problems.
+→ The most persuasive problems are the ones that get in your future self's head. They manifest themselves not just as a bug to crush or a decision to make, but as an opportunity that lights a fire under your ass to do the hard work.
 
-## Understanding Cursor's Architecture
+As someone with an overindex of experience solving incredibly niche problems that get in the way of progress - building this tool is one of those exercises.
 
 Cursor is built on VSCode's architecture, which means it's an Electron application. This gives us some immediate insights:
 
