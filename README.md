@@ -48,11 +48,11 @@ Cursor Tools provides a robust suite of utilities for managing your Cursor IDE n
 
 #### 1. Notepad Management
 
-- **Create & Edit**: Create new notepads with rich content and edit existing ones
-- **Organization**: Group related notepads and manage them efficiently
-- **Search & Filter**: Quickly find notepads across all workspaces
-- **Backup & Sync**: Automatically backup your Cursor notepads across workspaces
-- **Import/Export**: Share notepads between workspaces or with team members
+- [x] **Create & Edit**: Create new notepads with rich content and edit existing ones
+- [ ] **Organization**: Group related notepads and manage them efficiently
+- [ ] **Search & Filter**: Quickly find notepads across all workspaces
+- [ ] **Backup & Sync**: Automatically backup your Cursor notepads across workspaces
+- [ ] **Import/Export**: Share notepads between workspaces or with team members
 
 #### 2. Smart Templates
 
