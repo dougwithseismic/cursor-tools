@@ -50,6 +50,12 @@ function updateChangelog(version, type) {
   log("Updated CHANGELOG.md", colors.green);
 }
 
+async function deleteTag(version) {
+  log("\n🗑️  Deleting existing tag...", colors.blue);
+  exec(`git tag -d v${version}`);
+  exec(`git push origin :refs/tags/v${version}`);
+}
+
 async function release() {
   log("\n🚀 Starting release process...", colors.bright + colors.blue);
 
@@ -77,11 +83,13 @@ Choose release type:
     .map((n, i) => (i === 1 ? Number(n) + 1 : i === 2 ? "0" : n))
     .join(".")})
 3) major (${Number(currentVersion.split(".")[0]) + 1}.0.0)
+4) replace (${currentVersion}) - Retry current version
 
-Enter choice (1-3): `;
+Enter choice (1-4): `;
 
   rl.question(question, async (choice) => {
     let versionType;
+    let isReplace = false;
     switch (choice) {
       case "1":
         versionType = "patch";
@@ -92,27 +100,35 @@ Enter choice (1-3): `;
       case "3":
         versionType = "major";
         break;
+      case "4":
+        versionType = "replace";
+        isReplace = true;
+        break;
       default:
         log("❌ Invalid choice", colors.red);
         rl.close();
         process.exit(1);
     }
 
-    log(`\n📦 Updating version (${versionType})...`, colors.blue);
+    if (isReplace) {
+      // Delete existing tag
+      await deleteTag(currentVersion);
+    } else {
+      log(`\n📦 Updating version (${versionType})...`, colors.blue);
+      // Update CHANGELOG.md
+      updateChangelog(currentVersion, versionType);
 
-    // Update CHANGELOG.md
-    updateChangelog(currentVersion, versionType);
-
-    // Open CHANGELOG.md for editing
-    log(
-      "\n✏️  Please update the CHANGELOG.md and press Enter when done...",
-      colors.yellow
-    );
-    exec(
-      process.platform === "win32"
-        ? "notepad CHANGELOG.md"
-        : "nano CHANGELOG.md"
-    );
+      // Open CHANGELOG.md for editing
+      log(
+        "\n✏️  Please update the CHANGELOG.md and press Enter when done...",
+        colors.yellow
+      );
+      exec(
+        process.platform === "win32"
+          ? "notepad CHANGELOG.md"
+          : "nano CHANGELOG.md"
+      );
+    }
 
     rl.question("\nProceed with release? (y/N) ", async (answer) => {
       if (answer.toLowerCase() !== "y") {
@@ -121,40 +137,43 @@ Enter choice (1-3): `;
         process.exit(0);
       }
 
-      // Commit CHANGELOG.md changes
-      log("\n📝 Committing CHANGELOG.md changes...", colors.blue);
-      if (
-        !exec("git add CHANGELOG.md") ||
-        !exec('git commit -m "docs: update CHANGELOG.md"')
-      ) {
-        log("❌ Failed to commit CHANGELOG.md", colors.red);
-        rl.close();
-        process.exit(1);
+      if (!isReplace) {
+        // Commit CHANGELOG.md changes
+        log("\n📝 Committing CHANGELOG.md changes...", colors.blue);
+        if (
+          !exec("git add CHANGELOG.md") ||
+          !exec('git commit -m "docs: update CHANGELOG.md"')
+        ) {
+          log("❌ Failed to commit CHANGELOG.md", colors.red);
+          rl.close();
+          process.exit(1);
+        }
+
+        // Run version update
+        log("\n📝 Updating versions...", colors.blue);
+        if (!exec(`pnpm version:${versionType}`)) {
+          log("❌ Version update failed", colors.red);
+          rl.close();
+          process.exit(1);
+        }
       }
 
-      // Run version update
-      log("\n📝 Updating versions...", colors.blue);
-      if (!exec(`pnpm version:${versionType}`)) {
-        log("❌ Version update failed", colors.red);
-        rl.close();
-        process.exit(1);
-      }
-
-      // Get new version
-      const newVersion = getCurrentVersion();
+      // Get version (same as current if replacing)
+      const version = getCurrentVersion();
 
       // Push changes and tag
       log("\n🏷️  Pushing changes and tag...", colors.blue);
-      if (!exec(`git push origin main && git push origin v${newVersion}`)) {
+      const pushCmd = isReplace
+        ? `git tag v${version} && git push origin v${version}`
+        : `git push origin main && git push origin v${version}`;
+
+      if (!exec(pushCmd)) {
         log("❌ Failed to push changes", colors.red);
         rl.close();
         process.exit(1);
       }
 
-      log(
-        `\n✅ Release v${newVersion} completed!`,
-        colors.bright + colors.green
-      );
+      log(`\n✅ Release v${version} completed!`, colors.bright + colors.green);
       log("\nGitHub Actions will now:");
       log("1. Build the app for all platforms");
       log("2. Create a GitHub release");
