@@ -72,8 +72,11 @@ async function release() {
   const question = `
 Choose release type:
 1) patch (${currentVersion.replace(/\d+$/, (match) => Number(match) + 1)})
-2) minor (${currentVersion.replace(/\.\d+$/, ".0").replace(/\d+\./, (match) => Number(match) + 1)})
-3) major (${currentVersion.replace(/\d+\..*$/, (match) => Number(match) + 1)}.0.0)
+2) minor (${currentVersion
+    .split(".")
+    .map((n, i) => (i === 1 ? Number(n) + 1 : i === 2 ? "0" : n))
+    .join(".")})
+3) major (${Number(currentVersion.split(".")[0]) + 1}.0.0)
 
 Enter choice (1-3): `;
 
@@ -118,6 +121,17 @@ Enter choice (1-3): `;
         process.exit(0);
       }
 
+      // Commit CHANGELOG.md changes
+      log("\n📝 Committing CHANGELOG.md changes...", colors.blue);
+      if (
+        !exec("git add CHANGELOG.md") ||
+        !exec('git commit -m "docs: update CHANGELOG.md"')
+      ) {
+        log("❌ Failed to commit CHANGELOG.md", colors.red);
+        rl.close();
+        process.exit(1);
+      }
+
       // Run version update
       log("\n📝 Updating versions...", colors.blue);
       if (!exec(`pnpm version:${versionType}`)) {
@@ -129,10 +143,10 @@ Enter choice (1-3): `;
       // Get new version
       const newVersion = getCurrentVersion();
 
-      // Create and push tag
-      log("\n🏷️  Creating and pushing tag...", colors.blue);
+      // Push changes and tag
+      log("\n🏷️  Pushing changes and tag...", colors.blue);
       if (!exec(`git push origin main && git push origin v${newVersion}`)) {
-        log("❌ Failed to push tag", colors.red);
+        log("❌ Failed to push changes", colors.red);
         rl.close();
         process.exit(1);
       }

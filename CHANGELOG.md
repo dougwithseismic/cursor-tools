@@ -1,3 +1,8 @@
+## [0.1.0] - 23.01.2025
+
+### Minor
+- 
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
