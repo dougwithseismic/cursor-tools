@@ -56,11 +56,14 @@ jobs:
       - name: Install and build
         env:
           PNPM_CONFIG_BUILD_FROM_SOURCE: true
+          npm_config_build_from_source: true
           PYTHON: ${{ env.pythonLocation }}
           PNPM_CONFIG_MSVS_VERSION: 2019
+          BETTER_SQLITE3_BINARY: false
         run: |
           pnpm install --frozen-lockfile
           cd apps/electron-app
+          pnpm electron-builder install-app-deps
           pnpm build:win --publish never
 
       - name: Upload Windows Artifacts
@@ -121,9 +124,11 @@ jobs:
         env:
           npm_config_build_from_source: true
           PYTHON: ${{ env.pythonLocation }}
+          BETTER_SQLITE3_BINARY: false
         run: |
           pnpm install --frozen-lockfile
           cd apps/electron-app
+          pnpm electron-builder install-app-deps
           pnpm build:mac --publish never
 
       - name: Upload macOS Artifacts
