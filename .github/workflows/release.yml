@@ -27,31 +27,43 @@ jobs:
       - name: Install pnpm
         run: npm install -g pnpm
 
+      - name: Setup pnpm
+        run: pnpm setup
+
+      - name: Configure PATH
+        run: echo "C:\\Users\\runneradmin\\AppData\\Local\\pnpm" >> $env:GITHUB_PATH
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
       - name: Setup Windows build tools
         shell: powershell
         run: |
           pnpm config set msvs_version 2022 --location project
           pnpm config set python ${{ env.pythonLocation }} --location project
 
-      - name: Install VS 2022 Build Tools
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-          toolset: 14.3
-          sdk: 10.0.19041.0
-
       - name: Install and build
         env:
           PNPM_CONFIG_BUILD_FROM_SOURCE: true
-          npm_config_build_from_source: true
           PYTHON: ${{ env.pythonLocation }}
+          PNPM_CONFIG_MSVS_VERSION: 2022
+          BETTER_SQLITE3_BINARY: false
         run: |
           pnpm install --frozen-lockfile
           cd apps/electron-app
-          pnpm add -D prebuild-install
-          pnpm rebuild better-sqlite3 --build-from-source
           pnpm electron-builder install-app-deps
-          pnpm run build:win
+          pnpm build:win --publish never
 
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v3
@@ -74,25 +86,49 @@ jobs:
           node-version: 18
           registry-url: "https://registry.npmjs.org"
 
-      - name: Install pnpm
-        run: npm install -g pnpm
-
-      - name: Install Python and build tools
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Setup pnpm
+        run: pnpm setup
+
+      - name: Configure PATH
+        run: echo "/Users/runner/Library/pnpm" >> $GITHUB_PATH
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install Python dependencies
+        run: |
+          python -m ensurepip --upgrade
+          python -m pip install --upgrade pip setuptools wheel
+
       - name: Install and build
         env:
           npm_config_build_from_source: true
+          PYTHON: ${{ env.pythonLocation }}
           BETTER_SQLITE3_BINARY: false
         run: |
           pnpm install --frozen-lockfile
           cd apps/electron-app
-          pnpm add -D prebuild-install
-          pnpm rebuild better-sqlite3 --build-from-source
           pnpm electron-builder install-app-deps
-          pnpm run build:mac
+          pnpm build:mac --publish never
 
       - name: Upload macOS Artifacts
         uses: actions/upload-artifact@v3
@@ -119,5 +155,6 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
+          discussion-category: "Announcements"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
