@@ -12,7 +12,11 @@
     "test:watch": "turbo test -- --watch",
     "check-versions": "syncpack list-mismatches",
     "fix-versions": "syncpack fix-mismatches",
-    "update-deps": "pnpm update -r"
+    "update-deps": "pnpm update -r",
+    "version:patch": "pnpm version patch -m \"chore: release v%s\" && pnpm --filter electron-app version patch --no-git-tag-version",
+    "version:minor": "pnpm version minor -m \"chore: release v%s\" && pnpm --filter electron-app version minor --no-git-tag-version",
+    "version:major": "pnpm version major -m \"chore: release v%s\" && pnpm --filter electron-app version major --no-git-tag-version",
+    "release": "node scripts/release.js"
   },
   "devDependencies": {
     "prettier": "^3.3.2",
