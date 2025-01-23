@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      electron-builder:
+        specifier: ^24.13.3
+        version: 24.13.3(electron-builder-squirrel-windows@24.13.3)
       prettier:
         specifier: ^3.3.2
         version: 3.4.2

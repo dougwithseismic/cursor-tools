@@ -50,20 +50,19 @@ jobs:
       - name: Setup Windows build tools
         shell: powershell
         run: |
-          npm config set msvs_version 2019 --location project
-          npm config set python ${{ env.pythonLocation }} --location project
+          pnpm config set msvs_version 2019 --location project
+          pnpm config set python ${{ env.pythonLocation }} --location project
 
       - name: Install and build
         env:
-          NODE_ENV: production
-          npm_config_build_from_source: true
+          PNPM_CONFIG_BUILD_FROM_SOURCE: true
           PYTHON: ${{ env.pythonLocation }}
-          npm_config_msvs_version: 2019
+          PNPM_CONFIG_MSVS_VERSION: 2019
         run: |
           pnpm install --frozen-lockfile
           pnpm turbo run build --filter=electron-app...
           cd apps/electron-app
-          pnpm electron-builder --win --publish never
+          pnpm exec electron-builder --win --publish never
 
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v3
@@ -121,14 +120,13 @@ jobs:
 
       - name: Install and build
         env:
-          NODE_ENV: production
           npm_config_build_from_source: true
           PYTHON: ${{ env.pythonLocation }}
         run: |
           pnpm install --frozen-lockfile
           pnpm turbo run build --filter=electron-app...
           cd apps/electron-app
-          pnpm electron-builder --mac --publish never
+          pnpm exec electron-builder --mac --publish never
 
       - name: Upload macOS Artifacts
         uses: actions/upload-artifact@v3
