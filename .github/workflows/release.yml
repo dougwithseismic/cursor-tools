@@ -31,8 +31,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
+          registry-url: "https://registry.npmjs.org"
 
-      - name: Setup PNPM
+      # Install pnpm using npm for Windows
+      - name: Install pnpm (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          npm install -g pnpm
+          pnpm setup
+          pnpm install -g windows-build-tools node-gyp
+
+      # Use pnpm action for macOS
+      - name: Setup pnpm (macOS)
+        if: matrix.os == 'macos-latest'
         uses: pnpm/action-setup@v2
         with:
           version: 8
@@ -51,12 +62,27 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
+      - name: Install Visual Studio Build Tools
+        if: matrix.os == 'windows-latest'
+        run: |
+          npm config set msvs_version 2019
+          npm config set python python3
+
       - name: Install dependencies
-        run: pnpm install
+        run: |
+          pnpm config set store-dir ${{ env.STORE_PATH }}
+          pnpm install --no-frozen-lockfile
+
+      - name: Rebuild native modules
+        run: |
+          cd apps/electron-app
+          pnpm rebuild better-sqlite3 --build-from-source
+          pnpm rebuild sqlite3 --build-from-source
 
       - name: Build Electron App
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          npm_config_build_from_source: true
         run: |
           cd apps/electron-app
           pnpm build
