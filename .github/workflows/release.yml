@@ -60,9 +60,8 @@ jobs:
           PNPM_CONFIG_MSVS_VERSION: 2019
         run: |
           pnpm install --frozen-lockfile
-          pnpm turbo run build --filter=electron-app...
           cd apps/electron-app
-          pnpm exec electron-builder --win --publish never
+          pnpm build:win --publish never
 
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v3
@@ -124,9 +123,8 @@ jobs:
           PYTHON: ${{ env.pythonLocation }}
         run: |
           pnpm install --frozen-lockfile
-          pnpm turbo run build --filter=electron-app...
           cd apps/electron-app
-          pnpm exec electron-builder --mac --publish never
+          pnpm build:mac --publish never
 
       - name: Upload macOS Artifacts
         uses: actions/upload-artifact@v3
