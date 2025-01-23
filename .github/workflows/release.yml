@@ -56,14 +56,14 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: windows-artifacts
-          path: apps/electron-app/out/*.exe
+          path: apps/electron-app/dist/*.exe
 
       - name: Upload macOS Artifacts
         if: matrix.os == 'macos-latest'
         uses: actions/upload-artifact@v3
         with:
           name: macos-artifacts
-          path: apps/electron-app/out/*.dmg
+          path: apps/electron-app/dist/*.dmg
 
       - name: Upload Linux Artifacts
         if: matrix.os == 'ubuntu-latest'
@@ -71,13 +71,15 @@ jobs:
         with:
           name: linux-artifacts
           path: |
-            apps/electron-app/out/*.AppImage
-            apps/electron-app/out/*.snap
-            apps/electron-app/out/*.deb
+            apps/electron-app/dist/*.AppImage
+            apps/electron-app/dist/*.snap
+            apps/electron-app/dist/*.deb
 
   create-release:
     needs: release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v3
@@ -91,5 +93,6 @@ jobs:
             linux-artifacts/*
           draft: false
           prerelease: false
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
