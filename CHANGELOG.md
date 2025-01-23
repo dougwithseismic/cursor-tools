@@ -1,12 +1,7 @@
-## [0.1.0] - 23.01.2025
-
-### Patch
-- 
-
-## [0.1.0] - 23.01.2025
+## [0.1.2] - 23.01.2025
 
 ### Minor
-- 
+- Updated build actions for mac/linux
 
 # Changelog
 
