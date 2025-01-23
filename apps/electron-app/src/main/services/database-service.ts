@@ -1,6 +1,7 @@
 import { Database, open } from 'sqlite'
 import sqlite3 from 'sqlite3'
 import { DatabaseError, JsonError } from '../features/workspace/errors'
+import { QueryBuilder } from './query-builder'
 
 export interface DatabaseConfig {
   dbPath: string
@@ -262,6 +263,65 @@ export class DatabaseService {
         'Failed to close all database connections',
         'close_all',
         new AggregateError(errors)
+      )
+    }
+  }
+
+  /**
+   * Executes a query built by QueryBuilder
+   */
+  public async query<T = unknown>(dbPath: string, queryBuilder: QueryBuilder): Promise<T[]> {
+    const db = await this.getConnection(dbPath)
+    const { query, params } = queryBuilder.build()
+
+    try {
+      return await db.all(query, ...params)
+    } catch (error) {
+      throw new DatabaseError(
+        `Failed to execute query: ${query}`,
+        'query',
+        error instanceof Error ? error : undefined
+      )
+    }
+  }
+
+  /**
+   * Executes a query and returns a single row
+   */
+  public async queryOne<T = unknown>(
+    dbPath: string,
+    queryBuilder: QueryBuilder
+  ): Promise<T | null> {
+    const db = await this.getConnection(dbPath)
+    const { query, params } = queryBuilder.build()
+
+    try {
+      const result = await db.get(query, ...params)
+      return result || null
+    } catch (error) {
+      throw new DatabaseError(
+        `Failed to execute query: ${query}`,
+        'query_one',
+        error instanceof Error ? error : undefined
+      )
+    }
+  }
+
+  /**
+   * Executes a query and returns the number of affected rows
+   */
+  public async execute(dbPath: string, queryBuilder: QueryBuilder): Promise<number> {
+    const db = await this.getConnection(dbPath)
+    const { query, params } = queryBuilder.build()
+
+    try {
+      const result = await db.run(query, ...params)
+      return result.changes ?? 0
+    } catch (error) {
+      throw new DatabaseError(
+        `Failed to execute query: ${query}`,
+        'execute',
+        error instanceof Error ? error : undefined
       )
     }
   }
