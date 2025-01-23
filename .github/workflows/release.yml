@@ -16,43 +16,51 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.x"
-
-      - name: Install Python dependencies
-        if: matrix.os == 'macos-latest'
-        run: |
-          python -m ensurepip --upgrade
-          python -m pip install --upgrade pip setuptools wheel
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
           registry-url: "https://registry.npmjs.org"
 
-      # Install pnpm using npm for Windows
-      - name: Install pnpm (Windows)
+      # Setup Python and Visual Studio Build Tools (Windows)
+      - name: Setup build environment (Windows)
         if: matrix.os == 'windows-latest'
+        shell: powershell
         run: |
-          npm install -g pnpm
-          pnpm setup
-          pnpm install -g windows-build-tools node-gyp
+          # Install Python and set path
+          python -m ensurepip --upgrade
+          python -m pip install --upgrade pip setuptools wheel
+          echo "PYTHON=$(python -c 'import sys; print(sys.executable)')" >> $env:GITHUB_ENV
 
-      # Use pnpm action for macOS
-      - name: Setup pnpm (macOS)
+          # Set Visual Studio Build Tools config
+          npm config set msvs_version 2019
+          npm config set python $env:PYTHON
+
+      # Setup Python (macOS)
+      - name: Setup Python (macOS)
         if: matrix.os == 'macos-latest'
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+
+      - name: Install Python dependencies (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          python -m ensurepip --upgrade
+          python -m pip install --upgrade pip setuptools wheel
+
+      # Use pnpm action for both platforms
+      - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 8
           run_install: false
 
       - name: Get pnpm store directory
+        id: pnpm-cache
         shell: bash
         run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_ENV
 
       - name: Setup pnpm cache
         uses: actions/cache@v3
@@ -62,19 +70,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
-      - name: Install Visual Studio Build Tools
-        if: matrix.os == 'windows-latest'
+      # Install dependencies and rebuild native modules
+      - name: Install and build
+        env:
+          PYTHON: ${{ env.PYTHON }}
+          npm_config_build_from_source: true
         run: |
-          npm config set msvs_version 2019
-          npm config set python python3
-
-      - name: Install dependencies
-        run: |
-          pnpm config set store-dir ${{ env.STORE_PATH }}
           pnpm install --no-frozen-lockfile
-
-      - name: Rebuild native modules
-        run: |
           cd apps/electron-app
           pnpm rebuild better-sqlite3 --build-from-source
           pnpm rebuild sqlite3 --build-from-source
