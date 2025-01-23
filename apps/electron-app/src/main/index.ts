@@ -11,6 +11,7 @@ import { TrayManager } from './features/tray/tray'
 
 let mainWindow: BrowserWindow | null = null
 let trayManager: TrayManager | null = null
+let workspaceManager: WorkspaceManager | null = null
 
 function createWindow(): void {
   // Force dark mode
@@ -79,7 +80,7 @@ app.whenReady().then(async () => {
   electronApp.setAppUserModelId('com.withseismic.cursor-tools')
 
   // Initialize services
-  const workspaceManager = new WorkspaceManager()
+  workspaceManager = new WorkspaceManager()
   await workspaceManager.initialize()
 
   const workspaceService = new WorkspaceService(workspaceManager)
@@ -112,9 +113,25 @@ app.whenReady().then(async () => {
 
 // Handle cleanup before quit
 app.on('before-quit', async () => {
-  // Destroy tray
-  if (trayManager) {
-    trayManager.destroy()
+  // Prevent new quit attempts while we're cleaning up
+  app.removeAllListeners('window-all-closed')
+
+  try {
+    // Close all database connections
+    if (mainWindow) {
+      // Destroy tray
+      if (trayManager) {
+        trayManager.destroy()
+      }
+      // Close the window
+      mainWindow.destroy()
+    }
+    // Clean up workspace manager
+    if (workspaceManager) {
+      await workspaceManager.close()
+    }
+  } catch (error) {
+    console.error('Error during app cleanup:', error)
   }
 })
 

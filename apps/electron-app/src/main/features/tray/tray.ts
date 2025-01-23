@@ -4,6 +4,7 @@ import path from 'path'
 export class TrayManager {
   private tray: Tray | null = null
   private mainWindow: BrowserWindow
+  private isQuitting: boolean = false
 
   constructor(mainWindow: BrowserWindow) {
     this.mainWindow = mainWindow
@@ -81,7 +82,11 @@ export class TrayManager {
 
     // Handle window close button
     this.mainWindow.on('close', (event): void => {
-      // Prevent the window from closing
+      // If we're quitting the app, allow the close
+      if (this.mainWindow.isDestroyed() || this.isQuitting) {
+        return
+      }
+      // Otherwise prevent the window from closing
       event.preventDefault()
       // Hide it instead
       this.mainWindow.hide()
@@ -96,6 +101,8 @@ export class TrayManager {
 
   private async handleQuit(): Promise<void> {
     try {
+      // Set the quitting flag
+      this.isQuitting = true
       // Perform any cleanup needed
       await this.cleanup()
       // Actually quit the app
