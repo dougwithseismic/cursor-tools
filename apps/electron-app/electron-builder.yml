@@ -29,15 +29,6 @@ mac:
   notarize: false
 dmg:
   artifactName: cursor-tools-${version}.${ext}
-linux:
-  target:
-    - AppImage
-    - snap
-    - deb
-  maintainer: doug@withseismic.com
-  category: Development
-appImage:
-  artifactName: cursor-tools-${version}.${ext}
 npmRebuild: false
 publish:
   provider: github

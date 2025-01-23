@@ -22,10 +22,16 @@ jobs:
           python-version: "3.x"
 
       - name: Install Python dependencies
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-latest' || matrix.os == 'ubuntu-latest'
         run: |
           python -m ensurepip --upgrade
           python -m pip install --upgrade pip setuptools wheel
+
+      - name: Install Ubuntu dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-distutils
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -54,12 +60,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Install Linux dependencies
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y rpm snapcraft
-
       - name: Build Electron App
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -82,16 +82,6 @@ jobs:
           name: macos-artifacts
           path: apps/electron-app/dist/*.dmg
 
-      - name: Upload Linux Artifacts
-        if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v3
-        with:
-          name: linux-artifacts
-          path: |
-            apps/electron-app/dist/*.AppImage
-            apps/electron-app/dist/*.snap
-            apps/electron-app/dist/*.deb
-
   create-release:
     needs: release
     runs-on: ubuntu-latest
@@ -107,7 +97,6 @@ jobs:
           files: |
             windows-artifacts/*
             macos-artifacts/*
-            linux-artifacts/*
           draft: false
           prerelease: false
           generate_release_notes: true
