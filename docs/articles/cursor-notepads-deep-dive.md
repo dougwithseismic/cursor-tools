@@ -66,12 +66,6 @@ graph TD
     B --> C[Execute Pre-built Prompt]
     C --> D[Get Consistent Result]
     D --> E[Quick Iterations if Needed]
-    
-    style A fill:#f96,stroke:#333,stroke-width:2px
-    style B fill:#bbf,stroke:#333,stroke-width:2px
-    style C fill:#dfd,stroke:#333,stroke-width:2px
-    style D fill:#fdd,stroke:#333,stroke-width:2px
-    style E fill:#ddf,stroke:#333,stroke-width:2px
 ```
 
 > 🎯 **Getting Started Tip**: Start small. Create a notepad for something simple like `git add . && git commit -m "your message"`. Once you see how much time it saves, you'll naturally expand to more complex scenarios.
