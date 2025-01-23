@@ -2,6 +2,8 @@ import { app } from 'electron'
 import path from 'path'
 import fs from 'fs/promises'
 import { Workspace } from './workspace'
+import { DatabaseService } from '../../db/database-service'
+import { DatabaseError } from './errors'
 
 /**
  * Configuration object for workspace folder structure.
@@ -44,6 +46,7 @@ export interface WorkspaceInfo {
 export class WorkspaceManager {
   private workspaces: Workspace[]
   private workspacePath: string
+  private readonly dbService: DatabaseService
 
   /**
    * Creates a new WorkspaceManager instance.
@@ -54,6 +57,7 @@ export class WorkspaceManager {
   constructor() {
     this.workspaces = []
     this.workspacePath = path.join(app.getPath('appData'), 'Cursor', 'User', 'workspaceStorage')
+    this.dbService = new DatabaseService()
   }
 
   /**
@@ -92,6 +96,16 @@ export class WorkspaceManager {
           const dbPath = path.join(workspaceDir, 'state.vscdb')
 
           try {
+            // Verify database connection
+            try {
+              await this.dbService.get(dbPath, 'workspace:info')
+            } catch (error) {
+              if (error instanceof DatabaseError) {
+                console.error(`Invalid database for workspace ${dir}:`, error)
+                return null
+              }
+            }
+
             const workspaceJsonContent = await fs.readFile(workspaceJsonPath, 'utf-8')
             const workspaceJson = JSON.parse(workspaceJsonContent) as WorkspaceJson
             const folderPath = decodeURIComponent(workspaceJson.folder.replace('file:///', ''))
@@ -137,5 +151,12 @@ export class WorkspaceManager {
    */
   async getWorkspace(id: string): Promise<Workspace | null> {
     return this.workspaces.find((workspace) => workspace.id === id) || null
+  }
+
+  /**
+   * Closes all workspace connections.
+   */
+  async close(): Promise<void> {
+    await Promise.all(this.workspaces.map((workspace) => workspace.close()))
   }
 }
