@@ -12,7 +12,10 @@ export default defineConfig({
       }
     },
     build: {
-      watch: {}
+      watch: {},
+      rollupOptions: {
+        external: ['sqlite3', 'better-sqlite3', 'electron-updater', 'interprocess']
+      }
     }
   },
   preload: {
