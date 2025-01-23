@@ -1,6 +1,8 @@
 import Database, { type Database as BetterSQLite3Database } from 'better-sqlite3'
 import { DatabaseError, JsonError } from '../features/workspace/errors'
 import { QueryBuilder } from './query-builder'
+import fs from 'fs'
+import path from 'path'
 
 export interface DatabaseConfig {
   dbPath: string
@@ -21,11 +23,30 @@ export class DatabaseService {
     let connection = this.dbConnections.get(dbPath)
     if (!connection) {
       try {
-        connection = new Database(dbPath)
+        // Ensure the directory exists
+        const dbDir = path.dirname(dbPath)
+        if (!fs.existsSync(dbDir)) {
+          fs.mkdirSync(dbDir, { recursive: true })
+        }
+
+        // Open database with verbose logging in development
+        connection = new Database(dbPath, {
+          verbose: process.env.NODE_ENV === 'development' ? console.log : undefined,
+          fileMustExist: true // Allow creating new database files
+        })
+
+        // Enable WAL mode for better performance and reliability
+        connection.pragma('journal_mode = WAL')
+
         // Verify connection by running a simple query
         connection.prepare('SELECT 1').get()
         this.dbConnections.set(dbPath, connection)
       } catch (error) {
+        console.error('Database connection error:', {
+          path: dbPath,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined
+        })
         throw new DatabaseError(
           'Failed to initialize database connection',
           'connect',

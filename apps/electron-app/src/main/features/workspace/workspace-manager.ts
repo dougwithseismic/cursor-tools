@@ -56,7 +56,12 @@ export class WorkspaceManager {
    */
   constructor() {
     this.workspaces = []
-    this.workspacePath = path.join(app.getPath('appData'), 'Cursor', 'User', 'workspaceStorage')
+    this.workspacePath = path.join(
+      process.platform === 'darwin' ? app.getPath('userData') : app.getPath('appData'),
+      'Cursor',
+      'User',
+      'workspaceStorage'
+    )
     this.dbService = new DatabaseService()
   }
 
@@ -68,7 +73,14 @@ export class WorkspaceManager {
    * @throws {Error} If workspace loading fails
    */
   async initialize(): Promise<void> {
-    await this.loadWorkspaces()
+    try {
+      // Ensure workspace directory exists
+      await fs.mkdir(this.workspacePath, { recursive: true })
+      await this.loadWorkspaces()
+    } catch (error) {
+      console.error('Failed to initialize workspace manager:', error)
+      throw error
+    }
   }
 
   /**
@@ -88,19 +100,39 @@ export class WorkspaceManager {
   private async loadWorkspaces(): Promise<void> {
     try {
       const workspaceDirs = await fs.readdir(this.workspacePath)
+      console.log('Found workspace directories:', workspaceDirs)
 
       const workspaceResults = await Promise.all(
         workspaceDirs.map(async (dir) => {
           if (dir === 'images') return null
+
           const workspaceDir = path.join(this.workspacePath, dir)
           const workspaceJsonPath = path.join(workspaceDir, 'workspace.json')
           const dbPath = path.join(workspaceDir, 'state.vscdb')
 
           try {
-            // Verify database connection
+            // Ensure workspace directory exists
+            await fs.mkdir(workspaceDir, { recursive: true })
+
+            // Check if workspace.json exists
             try {
-              await this.dbService.get(dbPath, 'notepadData') // a quick check
+              await fs.access(workspaceJsonPath)
+            } catch {
+              console.warn(`No workspace.json found for ${dir}`)
+              return null
+            }
+
+            // Verify database connection with detailed error logging
+            try {
+              await this.dbService.get(dbPath, 'notepadData')
             } catch (error) {
+              console.error('Database verification failed:', {
+                workspace: dir,
+                dbPath,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                stack: error instanceof Error ? error.stack : undefined
+              })
+
               if (error instanceof DatabaseError) {
                 console.error(`Invalid database for workspace ${dir}:`, error)
                 return null
@@ -111,13 +143,22 @@ export class WorkspaceManager {
             const workspaceJson = JSON.parse(workspaceJsonContent) as WorkspaceJson
             const folderPath = decodeURIComponent(workspaceJson.folder.replace('file:///', ''))
 
+            console.log('Loaded workspace:', {
+              id: dir,
+              folderPath,
+              dbPath
+            })
+
             return {
               id: dir,
               folderPath,
               dbPath
             } as WorkspaceInfo
           } catch (error) {
-            console.error(`Error loading workspace ${dir}:`, error)
+            console.error(`Error loading workspace ${dir}:`, {
+              error: error instanceof Error ? error.message : 'Unknown error',
+              stack: error instanceof Error ? error.stack : undefined
+            })
             return null
           }
         })
@@ -126,8 +167,16 @@ export class WorkspaceManager {
       this.workspaces = workspaceResults
         .filter((workspace): workspace is WorkspaceInfo => workspace !== null)
         .map((workspaceInfo) => new Workspace({ workspace: workspaceInfo }))
+
+      console.log(
+        'Initialized workspaces:',
+        this.workspaces.map((w) => w.id)
+      )
     } catch (error) {
-      console.error('Failed to load workspaces:', error)
+      console.error('Failed to load workspaces:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      })
       throw error
     }
   }

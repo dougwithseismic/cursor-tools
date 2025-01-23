@@ -7,8 +7,16 @@ import fs from 'fs/promises'
 
 export class WorkspaceService {
   private workspaceMap: Map<string, Workspace> = new Map()
+  private workspacePath: string
 
-  constructor(private readonly workspaceManager: WorkspaceManager) {}
+  constructor(private readonly workspaceManager: WorkspaceManager) {
+    this.workspacePath = path.join(
+      process.platform === 'darwin' ? app.getPath('userData') : app.getPath('appData'),
+      'Cursor',
+      'User',
+      'workspaceStorage'
+    )
+  }
 
   public async getWorkspaces(): Promise<WorkspaceInfo[]> {
     const workspaces = await this.workspaceManager.getWorkspaces()
@@ -42,13 +50,7 @@ export class WorkspaceService {
     try {
       // Create workspace directory
       const workspaceId = crypto.randomUUID()
-      const workspacePath = path.join(
-        app.getPath('appData'),
-        'Cursor',
-        'User',
-        'workspaceStorage',
-        workspaceId
-      )
+      const workspacePath = path.join(this.workspacePath, workspaceId)
       await fs.mkdir(workspacePath, { recursive: true })
 
       // Create workspace.json
@@ -91,13 +93,7 @@ export class WorkspaceService {
         throw new WorkspaceError('Workspace not found')
       }
 
-      const workspacePath = path.join(
-        app.getPath('appData'),
-        'Cursor',
-        'User',
-        'workspaceStorage',
-        id
-      )
+      const workspacePath = path.join(this.workspacePath, id)
       const workspaceJson = {
         folder: `file:///${encodeURIComponent(data.folderPath)}`
       }
@@ -123,13 +119,7 @@ export class WorkspaceService {
         throw new WorkspaceError('Workspace not found')
       }
 
-      const workspacePath = path.join(
-        app.getPath('appData'),
-        'Cursor',
-        'User',
-        'workspaceStorage',
-        id
-      )
+      const workspacePath = path.join(this.workspacePath, id)
       await fs.rm(workspacePath, { recursive: true, force: true })
 
       // Remove from cache
