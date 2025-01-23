@@ -1,7 +1,12 @@
+## [0.1.3] - 23.01.2025
+
+### Patch
+- Removed Linux
+
 ## [0.1.2] - 23.01.2025
 
 ### Minor
-- Updated build actions for mac/linux
+- Updated build actions for mac
 
 # Changelog
 
