@@ -7,13 +7,17 @@ import { setupNotepadHandlers } from './ipc/notepad-handlers'
 import { WorkspaceManager } from './features/workspace/workspace-manager'
 import { WorkspaceService } from './services/workspace-service'
 import { NotepadService } from './services/notepad-service'
+import { TrayManager } from './features/tray/tray'
+
+let mainWindow: BrowserWindow | null = null
+let trayManager: TrayManager | null = null
 
 function createWindow(): void {
   // Force dark mode
   nativeTheme.themeSource = 'dark'
 
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
     show: false,
@@ -43,12 +47,14 @@ function createWindow(): void {
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      nodeIntegration: true,
+      contextIsolation: true
     }
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+    if (mainWindow) mainWindow.show()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -70,7 +76,7 @@ function createWindow(): void {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(async () => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron')
+  electronApp.setAppUserModelId('com.withseismic.cursor-tools')
 
   // Initialize services
   const workspaceManager = new WorkspaceManager()
@@ -92,11 +98,24 @@ app.whenReady().then(async () => {
 
   createWindow()
 
+  // Initialize tray after window creation
+  if (mainWindow) {
+    trayManager = new TrayManager(mainWindow)
+  }
+
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+})
+
+// Handle cleanup before quit
+app.on('before-quit', async () => {
+  // Destroy tray
+  if (trayManager) {
+    trayManager.destroy()
+  }
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common

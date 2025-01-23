@@ -1,5 +1,5 @@
-import { Database, open } from 'sqlite'
-import sqlite3 from 'sqlite3'
+import { DatabaseService } from '../../db/database-service'
+import { QueryBuilder } from '../../db/query-builder'
 import { NotepadManager } from '../notepad/notepad-manager'
 import { DatabaseError, JsonError } from './errors'
 import { WorkspaceInfo } from './workspace-manager'
@@ -40,7 +40,7 @@ export class Workspace {
   public folderPath: string
   public dbPath: string
   public readonly notepadManager: NotepadManager
-  private dbConnection: Database | null = null
+  private readonly dbService: DatabaseService
 
   /**
    * Creates a new Workspace instance.
@@ -53,48 +53,8 @@ export class Workspace {
     this.id = workspace.id
     this.folderPath = workspace.folderPath
     this.dbPath = workspace.dbPath
+    this.dbService = new DatabaseService()
     this.notepadManager = new NotepadManager(this)
-  }
-
-  /**
-   * Gets or initializes the SQLite database connection.
-   * Creates the ItemTable if it doesn't exist.
-   *
-   * The database schema:
-   * ```sql
-   * CREATE TABLE IF NOT EXISTS ItemTable (
-   *   key TEXT PRIMARY KEY,
-   *   value TEXT
-   * )
-   * ```
-   *
-   * @private
-   * @returns {Promise<Database>} The database connection
-   * @throws {DatabaseError} If database connection or initialization fails
-   */
-  private async getDb(): Promise<Database> {
-    try {
-      if (!this.dbConnection) {
-        this.dbConnection = await open({
-          filename: this.dbPath,
-          driver: sqlite3.Database
-        })
-        // Ensure table exists
-        await this.dbConnection.exec(`
-          CREATE TABLE IF NOT EXISTS ItemTable (
-            key TEXT PRIMARY KEY,
-            value TEXT
-          )
-        `)
-      }
-      return this.dbConnection
-    } catch (error) {
-      throw new DatabaseError(
-        'Failed to initialize database connection',
-        'initialize',
-        error instanceof Error ? error : undefined
-      )
-    }
   }
 
   /**
@@ -122,8 +82,9 @@ export class Workspace {
    */
   async get<T>(key: string): Promise<T | null> {
     try {
-      const db = await this.getDb()
-      const result = await db.get('SELECT value FROM ItemTable WHERE key = ?', key)
+      const query = new QueryBuilder().select('value').from('ItemTable').where('key = ?', key)
+
+      const result = await this.dbService.queryOne<{ value: string }>(this.dbPath, query)
       if (!result) return null
 
       try {
@@ -179,8 +140,25 @@ export class Workspace {
     }
 
     try {
-      const db = await this.getDb()
-      await db.run('INSERT OR REPLACE INTO ItemTable (key, value) VALUES (?, ?)', key, jsonValue)
+      const query = new QueryBuilder().from('ItemTable').where('key = ?', key)
+
+      const exists = await this.dbService.queryOne(this.dbPath, query)
+
+      if (exists) {
+        const updateQuery = new QueryBuilder()
+          .from('ItemTable')
+          .where('key = ?', key)
+          .set('value', jsonValue)
+
+        await this.dbService.execute(this.dbPath, updateQuery)
+      } else {
+        const insertQuery = new QueryBuilder().from('ItemTable').insert({
+          key,
+          value: jsonValue
+        })
+
+        await this.dbService.execute(this.dbPath, insertQuery)
+      }
     } catch (error) {
       throw new DatabaseError(
         `Failed to store value for key '${key}'`,
@@ -207,9 +185,10 @@ export class Workspace {
    */
   async delete(key: string): Promise<boolean> {
     try {
-      const db = await this.getDb()
-      const result = await db.run('DELETE FROM ItemTable WHERE key = ?', key)
-      return (result.changes ?? 0) > 0
+      const query = new QueryBuilder().from('ItemTable').where('key = ?', key).delete()
+
+      const affectedRows = await this.dbService.execute(this.dbPath, query)
+      return affectedRows > 0
     } catch (error) {
       throw new DatabaseError(
         `Failed to delete value for key '${key}'`,
@@ -235,9 +214,10 @@ export class Workspace {
    */
   async has(key: string): Promise<boolean> {
     try {
-      const db = await this.getDb()
-      const result = await db.get('SELECT 1 FROM ItemTable WHERE key = ?', key)
-      return result !== undefined
+      const query = new QueryBuilder().select('1').from('ItemTable').where('key = ?', key)
+
+      const result = await this.dbService.queryOne(this.dbPath, query)
+      return result !== null
     } catch (error) {
       throw new DatabaseError(
         `Failed to check existence of key '${key}'`,
@@ -264,8 +244,9 @@ export class Workspace {
    */
   async keys(): Promise<string[]> {
     try {
-      const db = await this.getDb()
-      const results = await db.all('SELECT key FROM ItemTable')
+      const query = new QueryBuilder().select('key').from('ItemTable').orderBy('created_at')
+
+      const results = await this.dbService.query<{ key: string }>(this.dbPath, query)
       return results.map((row) => row.key)
     } catch (error) {
       throw new DatabaseError(
@@ -290,8 +271,9 @@ export class Workspace {
    */
   async clear(): Promise<void> {
     try {
-      const db = await this.getDb()
-      await db.run('DELETE FROM ItemTable')
+      const query = new QueryBuilder().from('ItemTable').delete()
+
+      await this.dbService.execute(this.dbPath, query)
     } catch (error) {
       throw new DatabaseError(
         'Failed to clear storage',
@@ -315,17 +297,14 @@ export class Workspace {
    * ```
    */
   async close(): Promise<void> {
-    if (this.dbConnection) {
-      try {
-        await this.dbConnection.close()
-        this.dbConnection = null
-      } catch (error) {
-        throw new DatabaseError(
-          'Failed to close database connection',
-          'close',
-          error instanceof Error ? error : undefined
-        )
-      }
+    try {
+      await this.dbService.close(this.dbPath)
+    } catch (error) {
+      throw new DatabaseError(
+        'Failed to close database connection',
+        'close',
+        error instanceof Error ? error : undefined
+      )
     }
   }
 }

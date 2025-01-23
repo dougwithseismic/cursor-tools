@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Versions from './components/versions'
-import { WorkspaceList } from './components/workspace-list'
 import { WorkspaceLayout } from './features/workspace/workspace-layout'
 
 function App(): JSX.Element {

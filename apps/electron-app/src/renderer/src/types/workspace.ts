@@ -23,6 +23,6 @@ export interface ElectronAPI {
 
 declare global {
   interface Window {
-    readonly electron: ElectronAPI
+    electron: ElectronAPI
   }
 }
