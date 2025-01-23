@@ -70,7 +70,7 @@ jobs:
           npm_config_build_from_source: true
           PYTHON: ${{ env.pythonLocation }}
           npm_config_msvs_version: ${{ matrix.os == 'windows-latest' && '2019' || '' }}
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build Electron app
         env:
