@@ -9,10 +9,13 @@
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "test": "turbo test",
-    "test:watch": "turbo test -- --watch"
+    "test:watch": "turbo test -- --watch",
+    "check-versions": "syncpack list-mismatches",
+    "fix-versions": "syncpack fix-mismatches",
+    "update-deps": "pnpm update -r"
   },
   "devDependencies": {
-    "prettier": "^3.2.5",
+    "prettier": "^3.3.2",
     "turbo": "^2.3.3",
     "typescript": "5.5.4"
   },
