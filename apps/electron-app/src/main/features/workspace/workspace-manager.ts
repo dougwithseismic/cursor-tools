@@ -91,6 +91,7 @@ export class WorkspaceManager {
 
       const workspaceResults = await Promise.all(
         workspaceDirs.map(async (dir) => {
+          if (dir === 'images') return null
           const workspaceDir = path.join(this.workspacePath, dir)
           const workspaceJsonPath = path.join(workspaceDir, 'workspace.json')
           const dbPath = path.join(workspaceDir, 'state.vscdb')

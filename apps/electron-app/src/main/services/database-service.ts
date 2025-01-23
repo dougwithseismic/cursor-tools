@@ -1,5 +1,4 @@
-import { Database, open } from 'sqlite'
-import sqlite3 from 'sqlite3'
+import Database, { type Database as BetterSQLite3Database } from 'better-sqlite3'
 import { DatabaseError, JsonError } from '../features/workspace/errors'
 import { QueryBuilder } from '../db/query-builder'
 
@@ -13,20 +12,17 @@ export interface DatabaseTransaction {
 }
 
 export class DatabaseService {
-  private dbConnections: Map<string, Database> = new Map()
+  private dbConnections: Map<string, BetterSQLite3Database> = new Map()
 
   /**
    * Gets or creates a database connection for the given path
    */
-  private async getConnection(dbPath: string): Promise<Database> {
+  private getConnection(dbPath: string): BetterSQLite3Database {
     let connection = this.dbConnections.get(dbPath)
     if (!connection) {
       try {
-        connection = await open({
-          filename: dbPath,
-          driver: sqlite3.Database
-        })
-        await this.initializeSchema(connection)
+        connection = new Database(dbPath)
+        this.initializeSchema(connection)
         this.dbConnections.set(dbPath, connection)
       } catch (error) {
         throw new DatabaseError(
@@ -42,9 +38,9 @@ export class DatabaseService {
   /**
    * Initializes the database schema if it doesn't exist
    */
-  private async initializeSchema(db: Database): Promise<void> {
+  private initializeSchema(db: BetterSQLite3Database): void {
     try {
-      await db.exec(`
+      db.exec(`
         CREATE TABLE IF NOT EXISTS ItemTable (
           key TEXT PRIMARY KEY,
           value TEXT NOT NULL,
@@ -68,15 +64,15 @@ export class DatabaseService {
    * Begins a new transaction
    */
   public async beginTransaction(dbPath: string): Promise<DatabaseTransaction> {
-    const db = await this.getConnection(dbPath)
-    await db.run('BEGIN TRANSACTION')
+    const db = this.getConnection(dbPath)
+    db.prepare('BEGIN TRANSACTION').run()
 
     return {
       async commit(): Promise<void> {
-        await db.run('COMMIT')
+        db.prepare('COMMIT').run()
       },
       async rollback(): Promise<void> {
-        await db.run('ROLLBACK')
+        db.prepare('ROLLBACK').run()
       }
     }
   }
@@ -85,7 +81,7 @@ export class DatabaseService {
    * Creates or updates a key-value pair in the database
    */
   public async set<T>(dbPath: string, key: string, value: T): Promise<void> {
-    const db = await this.getConnection(dbPath)
+    const db = this.getConnection(dbPath)
     let jsonValue: string
 
     try {
@@ -99,15 +95,14 @@ export class DatabaseService {
     }
 
     try {
-      await db.run(
+      const stmt = db.prepare(
         `INSERT INTO ItemTable (key, value, updated_at) 
          VALUES (?, ?, unixepoch()) 
          ON CONFLICT(key) DO UPDATE SET 
          value = excluded.value,
-         updated_at = excluded.updated_at`,
-        key,
-        jsonValue
+         updated_at = excluded.updated_at`
       )
+      stmt.run(key, jsonValue)
     } catch (error) {
       throw new DatabaseError(
         `Failed to set key: ${key}`,
@@ -121,10 +116,11 @@ export class DatabaseService {
    * Retrieves a value from the database by key
    */
   public async get<T>(dbPath: string, key: string): Promise<T | null> {
-    const db = await this.getConnection(dbPath)
+    const db = this.getConnection(dbPath)
 
     try {
-      const result = await db.get('SELECT value FROM ItemTable WHERE key = ?', key)
+      const stmt = db.prepare('SELECT value FROM ItemTable WHERE key = ?')
+      const result = stmt.get(key) as { value: string } | undefined
       if (!result) return null
 
       try {
@@ -150,11 +146,12 @@ export class DatabaseService {
    * Deletes a key-value pair from the database
    */
   public async delete(dbPath: string, key: string): Promise<boolean> {
-    const db = await this.getConnection(dbPath)
+    const db = this.getConnection(dbPath)
 
     try {
-      const result = await db.run('DELETE FROM ItemTable WHERE key = ?', key)
-      return (result.changes ?? 0) > 0
+      const stmt = db.prepare('DELETE FROM ItemTable WHERE key = ?')
+      const result = stmt.run(key)
+      return result.changes > 0
     } catch (error) {
       throw new DatabaseError(
         `Failed to delete key: ${key}`,
@@ -168,10 +165,11 @@ export class DatabaseService {
    * Checks if a key exists in the database
    */
   public async has(dbPath: string, key: string): Promise<boolean> {
-    const db = await this.getConnection(dbPath)
+    const db = this.getConnection(dbPath)
 
     try {
-      const result = await db.get('SELECT 1 FROM ItemTable WHERE key = ?', key)
+      const stmt = db.prepare('SELECT 1 FROM ItemTable WHERE key = ?')
+      const result = stmt.get(key)
       return result !== undefined
     } catch (error) {
       throw new DatabaseError(
@@ -186,11 +184,12 @@ export class DatabaseService {
    * Returns all keys in the database
    */
   public async keys(dbPath: string): Promise<string[]> {
-    const db = await this.getConnection(dbPath)
+    const db = this.getConnection(dbPath)
 
     try {
-      const results = await db.all('SELECT key FROM ItemTable')
-      return results.map((row: { key: string }) => row.key)
+      const stmt = db.prepare('SELECT key FROM ItemTable')
+      const results = stmt.all() as { key: string }[]
+      return results.map((row) => row.key)
     } catch (error) {
       throw new DatabaseError(
         'Failed to retrieve keys',
@@ -204,10 +203,10 @@ export class DatabaseService {
    * Clears all data from the database
    */
   public async clear(dbPath: string): Promise<void> {
-    const db = await this.getConnection(dbPath)
+    const db = this.getConnection(dbPath)
 
     try {
-      await db.run('DELETE FROM ItemTable')
+      db.prepare('DELETE FROM ItemTable').run()
     } catch (error) {
       throw new DatabaseError(
         'Failed to clear database',
@@ -224,7 +223,7 @@ export class DatabaseService {
     const connection = this.dbConnections.get(dbPath)
     if (connection) {
       try {
-        await connection.close()
+        connection.close()
         this.dbConnections.delete(dbPath)
       } catch (error) {
         throw new DatabaseError(
@@ -244,7 +243,7 @@ export class DatabaseService {
 
     for (const [dbPath, connection] of this.dbConnections) {
       try {
-        await connection.close()
+        connection.close()
       } catch (error) {
         errors.push(
           new DatabaseError(
@@ -259,7 +258,11 @@ export class DatabaseService {
     this.dbConnections.clear()
 
     if (errors.length > 0) {
-      throw new Error('Failed to close all database connections')
+      throw new DatabaseError(
+        'Failed to close all database connections',
+        'close_all',
+        new AggregateError(errors)
+      )
     }
   }
 
@@ -267,11 +270,12 @@ export class DatabaseService {
    * Executes a query built by QueryBuilder
    */
   public async query<T = unknown>(dbPath: string, queryBuilder: QueryBuilder): Promise<T[]> {
-    const db = await this.getConnection(dbPath)
+    const db = this.getConnection(dbPath)
     const { query, params } = queryBuilder.build()
 
     try {
-      return await db.all(query, ...params)
+      const stmt = db.prepare(query)
+      return stmt.all(...params) as T[]
     } catch (error) {
       throw new DatabaseError(
         `Failed to execute query: ${query}`,
@@ -282,18 +286,18 @@ export class DatabaseService {
   }
 
   /**
-   * Executes a query and returns a single row
+   * Executes a query and returns a single result
    */
   public async queryOne<T = unknown>(
     dbPath: string,
     queryBuilder: QueryBuilder
   ): Promise<T | null> {
-    const db = await this.getConnection(dbPath)
+    const db = this.getConnection(dbPath)
     const { query, params } = queryBuilder.build()
 
     try {
-      const result = await db.get(query, ...params)
-      return result || null
+      const stmt = db.prepare(query)
+      return (stmt.get(...params) as T) || null
     } catch (error) {
       throw new DatabaseError(
         `Failed to execute query: ${query}`,
@@ -304,15 +308,16 @@ export class DatabaseService {
   }
 
   /**
-   * Executes a query and returns the number of affected rows
+   * Executes a query that doesn't return results
    */
   public async execute(dbPath: string, queryBuilder: QueryBuilder): Promise<number> {
-    const db = await this.getConnection(dbPath)
+    const db = this.getConnection(dbPath)
     const { query, params } = queryBuilder.build()
 
     try {
-      const result = await db.run(query, ...params)
-      return result.changes ?? 0
+      const stmt = db.prepare(query)
+      const result = stmt.run(...params)
+      return result.changes
     } catch (error) {
       throw new DatabaseError(
         `Failed to execute query: ${query}`,
