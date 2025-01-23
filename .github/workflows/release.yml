@@ -4,9 +4,16 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+
 jobs:
-  release-windows:
-    runs-on: windows-latest
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -45,110 +52,39 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Setup Windows build tools
+        if: matrix.os == 'windows-latest'
         shell: powershell
         run: |
           npm config set msvs_version 2019 --location project
           npm config set python ${{ env.pythonLocation }} --location project
 
-      - name: Install and build
-        env:
-          NODE_ENV: production
-          npm_config_build_from_source: true
-          PYTHON: ${{ env.pythonLocation }}
-          npm_config_msvs_version: 2019
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm turbo run build --filter=electron-app...
-          cd apps/electron-app
-          pnpm electron-builder --win --publish never
-
-      - name: Upload Windows Artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: windows-artifacts
-          path: apps/electron-app/dist/*.exe
-          retention-days: 30
-
-  release-macos:
-    runs-on: macos-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          registry-url: "https://registry.npmjs.org"
-
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-          run_install: false
-
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
       - name: Install Python dependencies
+        if: matrix.os == 'macos-latest'
         run: |
           python -m ensurepip --upgrade
           python -m pip install --upgrade pip setuptools wheel
 
-      - name: Install and build
+      - name: Install dependencies
         env:
           NODE_ENV: production
           npm_config_build_from_source: true
           PYTHON: ${{ env.pythonLocation }}
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm turbo run build --filter=electron-app...
-          cd apps/electron-app
-          pnpm electron-builder --mac --publish never
+          npm_config_msvs_version: ${{ matrix.os == 'windows-latest' && '2019' || '' }}
+        run: pnpm install --frozen-lockfile
 
-      - name: Upload macOS Artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: macos-artifacts
-          path: apps/electron-app/dist/*.dmg
-          retention-days: 30
-
-  create-release:
-    needs: [release-windows, release-macos]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v3
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            windows-artifacts/*
-            macos-artifacts/*
-          draft: false
-          prerelease: false
-          generate_release_notes: true
-          discussion-category: "Announcements"
+      - name: Build Electron app
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pnpm turbo run build --filter=electron-app...
+          cd apps/electron-app
+          pnpm electron-builder --${{ matrix.os == 'windows-latest' && 'win' || 'mac' }} --publish always
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.os }}-artifacts
+          path: |
+            apps/electron-app/dist/*.exe
+            apps/electron-app/dist/*.dmg
+          retention-days: 30
