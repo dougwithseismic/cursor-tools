@@ -16,6 +16,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+
+      - name: Install Python dependencies
+        if: matrix.os == 'macos-latest'
+        run: |
+          python -m ensurepip --upgrade
+          python -m pip install --upgrade pip setuptools wheel
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -42,6 +53,12 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
+
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm snapcraft
 
       - name: Build Electron App
         env:
