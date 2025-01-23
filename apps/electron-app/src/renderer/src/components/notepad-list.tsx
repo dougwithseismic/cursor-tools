@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, forwardRef } from 'react'
 import { useNotepads } from '../hooks/use-notepads'
-import { Plus, Search } from 'lucide-react'
+import { Search, Plus } from 'lucide-react'
 import { Notepad as NotepadComponent } from './notepad'
+import { CreateNotepad } from './create-notepad'
 import { VariableSizeList as List } from 'react-window'
 import type { Notepad } from '../stores/notepad-store'
 
@@ -60,8 +61,8 @@ const NotepadRow = ({ index, style, data }: NotepadRowProps): JSX.Element => {
 export function NotepadList({ workspaceId }: NotepadListProps): JSX.Element {
   const { notepads, isLoading, error, createNotepad, updateNotepad, deleteNotepad } =
     useNotepads(workspaceId)
-  const [newNotepad, setNewNotepad] = useState({ name: '', text: '' })
   const [searchQuery, setSearchQuery] = useState('')
+  const [isCreateFormOpen, setIsCreateFormOpen] = useState(false)
   const listRef = useRef<HTMLDivElement>(null)
   const [listHeight, setListHeight] = useState(0)
   const sizeMap = useRef<{ [key: number]: number }>({})
@@ -90,15 +91,6 @@ export function NotepadList({ workspaceId }: NotepadListProps): JSX.Element {
     window.addEventListener('resize', updateHeight)
     return (): void => window.removeEventListener('resize', updateHeight)
   }, [])
-
-  const handleCreateNotepad = async (): Promise<void> => {
-    try {
-      await createNotepad({ name: newNotepad.name, text: newNotepad.text })
-      setNewNotepad({ name: '', text: '' })
-    } catch (err) {
-      // Error is handled by the hook
-    }
-  }
 
   const handleUpdateNotepad = async (notepad: {
     id: string
@@ -133,12 +125,20 @@ export function NotepadList({ workspaceId }: NotepadListProps): JSX.Element {
           Notepads ({notepads.length})
         </h2>
         <button
-          onClick={() => setNewNotepad({ name: '', text: '' })}
+          onClick={() => setIsCreateFormOpen(true)}
           className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-accent/50 transition-colors"
         >
           <Plus className="w-4 h-4" />
         </button>
       </div>
+
+      {/* Create Form */}
+      <CreateNotepad
+        onCreateNotepad={createNotepad}
+        isLoading={isLoading}
+        isOpen={isCreateFormOpen}
+        onClose={() => setIsCreateFormOpen(false)}
+      />
 
       {/* Search Bar */}
       <div className="px-2 py-2 border-b border-input">
@@ -157,61 +157,6 @@ export function NotepadList({ workspaceId }: NotepadListProps): JSX.Element {
       {/* Main Content Area */}
       <div className="flex-1 min-h-0">
         <div ref={listRef} className="h-full overflow-hidden">
-          {/* Create Form */}
-          {newNotepad.name !== '' && (
-            <div className="p-4">
-              <div className="p-4 border rounded-lg bg-card">
-                <div className="space-y-4">
-                  <div>
-                    <label
-                      htmlFor="name"
-                      className="block text-xs font-medium text-card-foreground"
-                    >
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      value={newNotepad.name}
-                      onChange={(e) => setNewNotepad({ ...newNotepad, name: e.target.value })}
-                      className="block w-full mt-1 text-xs rounded-md border-input bg-background focus:ring-primary focus:border-primary"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="text"
-                      className="block text-xs font-medium text-card-foreground"
-                    >
-                      Content
-                    </label>
-                    <textarea
-                      id="text"
-                      rows={4}
-                      value={newNotepad.text}
-                      onChange={(e) => setNewNotepad({ ...newNotepad, text: e.target.value })}
-                      className="block w-full mt-1 text-xs rounded-md border-input bg-background focus:ring-primary focus:border-primary"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleCreateNotepad}
-                      disabled={isLoading}
-                      className="px-3 py-1 text-xs font-medium border border-transparent rounded-md text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
-                    >
-                      Create
-                    </button>
-                    <button
-                      onClick={() => setNewNotepad({ name: '', text: '' })}
-                      className="px-3 py-1 text-xs font-medium border rounded-md text-card-foreground bg-card border-input hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {error && (
             <div className="p-4">
               <div className="p-4 rounded-md text-destructive-foreground bg-destructive">

@@ -1,7 +1,7 @@
-import ReactMarkdown from 'react-markdown'
-import type { Notepad as NotepadType, NotepadContext } from '../stores/notepad-store'
-import { Pencil, Trash, ChevronDown, ChevronUp, X, Check } from 'lucide-react'
+import { Check, ChevronDown, ChevronUp, Pencil, Trash, X } from 'lucide-react'
 import { useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import type { Notepad as NotepadType } from '../stores/notepad-store'
 
 interface NotepadProps {
   notepad: NotepadType
