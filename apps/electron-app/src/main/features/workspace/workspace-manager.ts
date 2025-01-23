@@ -98,7 +98,7 @@ export class WorkspaceManager {
           try {
             // Verify database connection
             try {
-              await this.dbService.get(dbPath, 'workspace:info')
+              await this.dbService.get(dbPath, 'notepadData') // a quick check
             } catch (error) {
               if (error instanceof DatabaseError) {
                 console.error(`Invalid database for workspace ${dir}:`, error)
