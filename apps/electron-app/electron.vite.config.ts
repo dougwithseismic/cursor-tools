@@ -14,7 +14,13 @@ export default defineConfig({
     build: {
       watch: {},
       rollupOptions: {
-        external: ['sqlite3', 'better-sqlite3', 'electron-updater', 'interprocess']
+        external: [
+          'better-sqlite3',
+          'electron-updater',
+          'interprocess',
+          'node-pre-gyp',
+          /better-sqlite3\/.*/
+        ]
       }
     }
   },
