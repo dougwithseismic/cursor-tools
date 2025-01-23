@@ -66,7 +66,7 @@ jobs:
           pnpm build:win --publish never
 
       - name: Upload Windows Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: windows-artifacts
           path: apps/electron-app/dist/*.exe
@@ -131,7 +131,7 @@ jobs:
           pnpm build:mac --publish never
 
       - name: Upload macOS Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: macos-artifacts
           path: apps/electron-app/dist/*.dmg
@@ -144,7 +144,7 @@ jobs:
       contents: write
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
