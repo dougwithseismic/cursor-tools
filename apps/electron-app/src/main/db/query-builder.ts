@@ -2,7 +2,7 @@ import { DatabaseError } from '../features/workspace/errors'
 
 export type OrderDirection = 'ASC' | 'DESC'
 export type JoinType = 'INNER' | 'LEFT' | 'RIGHT' | 'FULL'
-export type SQLValue = string | number | boolean | null | Date
+export type SQLValue = string | number | boolean | null | Date | object
 export type SQLParam = SQLValue | SQLValue[]
 
 export interface QueryCondition {
@@ -22,6 +22,11 @@ export interface JoinClause {
   params: SQLParam[]
 }
 
+export interface SetClause {
+  field: string
+  value: SQLValue | string
+}
+
 /**
  * SQL Query Builder for constructing type-safe database queries
  */
@@ -36,6 +41,10 @@ export class QueryBuilder {
   private limitValue?: number
   private offsetValue?: number
   private params: SQLParam[] = []
+  private setClauses: SetClause[] = []
+  private isInsert: boolean = false
+  private isDelete: boolean = false
+  private insertValues: Record<string, SQLValue | string> | null = null
 
   /**
    * Specify fields to select
@@ -172,6 +181,48 @@ export class QueryBuilder {
   }
 
   /**
+   * Set a field value for UPDATE operations
+   */
+  set(field: string, value: SQLValue | string): this {
+    // Handle JSON objects by stringifying them
+    const processedValue =
+      typeof value === 'object' && value !== null && !(value instanceof Date)
+        ? JSON.stringify(value)
+        : value
+    this.setClauses.push({ field, value: processedValue })
+    return this
+  }
+
+  /**
+   * Insert a record with the given values
+   */
+  insert(values: Record<string, SQLValue | string>): this {
+    // Handle JSON objects by stringifying them
+    const processedValues = Object.entries(values).reduce(
+      (acc, [key, value]) => {
+        acc[key] =
+          typeof value === 'object' && value !== null && !(value instanceof Date)
+            ? JSON.stringify(value)
+            : value
+        return acc
+      },
+      {} as Record<string, SQLValue | string>
+    )
+
+    this.isInsert = true
+    this.insertValues = processedValues
+    return this
+  }
+
+  /**
+   * Delete records matching the WHERE conditions
+   */
+  delete(): this {
+    this.isDelete = true
+    return this
+  }
+
+  /**
    * Build the final query and parameters
    */
   build(): { query: string; params: SQLParam[] } {
@@ -186,44 +237,70 @@ export class QueryBuilder {
     const parts: string[] = []
     this.params = []
 
-    // SELECT
-    parts.push(`SELECT ${this.selectClause.length > 0 ? this.selectClause.join(', ') : '*'}`)
+    if (this.isDelete) {
+      // Build DELETE query
+      parts.push(`DELETE FROM ${this.fromTable}`)
+    } else if (this.setClauses.length > 0) {
+      // Build UPDATE query
+      parts.push(`UPDATE ${this.fromTable}`)
 
-    // FROM
-    parts.push(`FROM ${this.fromTable}`)
+      const setStatements = this.setClauses.map(({ field, value }) => {
+        // Always use parameterized queries for values
+        this.params.push(value as SQLParam)
+        return `${field} = ?`
+      })
 
-    // JOIN
+      parts.push(`SET ${setStatements.join(', ')}`)
+    } else if (this.isInsert && this.insertValues) {
+      // Build INSERT query
+      const fields = Object.keys(this.insertValues)
+      const values = Object.values(this.insertValues)
+      const placeholders = values.map(() => '?')
+
+      parts.push(
+        `INSERT INTO ${this.fromTable} (${fields.join(', ')}) VALUES (${placeholders.join(', ')})`
+      )
+
+      // Add all values as parameters
+      this.params.push(...values)
+    } else {
+      // Build SELECT query
+      parts.push(`SELECT ${this.selectClause.length > 0 ? this.selectClause.join(', ') : '*'}`)
+      parts.push(`FROM ${this.fromTable}`)
+    }
+
+    // Add JOIN clauses
     for (const join of this.joinClauses) {
       parts.push(`${join.type} JOIN ${join.table} ON ${join.condition}`)
       this.params.push(...join.params)
     }
 
-    // WHERE
+    // Add WHERE conditions
     if (this.whereConditions.length > 0) {
       const conditions = this.whereConditions.map((c) => c.sql)
       parts.push(`WHERE ${conditions.join(' AND ')}`)
       this.whereConditions.forEach((c) => this.params.push(...c.params))
     }
 
-    // GROUP BY
+    // Add GROUP BY
     if (this.groupByFields.length > 0) {
       parts.push(`GROUP BY ${this.groupByFields.join(', ')}`)
     }
 
-    // HAVING
+    // Add HAVING
     if (this.havingConditions.length > 0) {
       const conditions = this.havingConditions.map((c) => c.sql)
       parts.push(`HAVING ${conditions.join(' AND ')}`)
       this.havingConditions.forEach((c) => this.params.push(...c.params))
     }
 
-    // ORDER BY
+    // Add ORDER BY
     if (this.orderByClauses.length > 0) {
       const orderBy = this.orderByClauses.map((c) => `${c.field} ${c.direction}`).join(', ')
       parts.push(`ORDER BY ${orderBy}`)
     }
 
-    // LIMIT & OFFSET
+    // Add LIMIT & OFFSET
     if (this.limitValue !== undefined) {
       parts.push(`LIMIT ${this.limitValue}`)
     }
@@ -251,6 +328,10 @@ export class QueryBuilder {
     this.limitValue = undefined
     this.offsetValue = undefined
     this.params = []
+    this.setClauses = []
+    this.isInsert = false
+    this.isDelete = false
+    this.insertValues = null
     return this
   }
 }

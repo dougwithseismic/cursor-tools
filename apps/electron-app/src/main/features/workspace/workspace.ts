@@ -1,8 +1,8 @@
+import { DatabaseService } from '../../db/database-service'
+import { QueryBuilder } from '../../db/query-builder'
 import { NotepadManager } from '../notepad/notepad-manager'
 import { DatabaseError, JsonError } from './errors'
 import { WorkspaceInfo } from './workspace-manager'
-import { DatabaseService } from '../../db/database-service'
-import { QueryBuilder } from '../../db/query-builder'
 
 /**
  * Represents a workspace in the Cursor application.
@@ -149,15 +149,12 @@ export class Workspace {
           .from('ItemTable')
           .where('key = ?', key)
           .set('value', jsonValue)
-          .set('updated_at', 'unixepoch()')
 
         await this.dbService.execute(this.dbPath, updateQuery)
       } else {
         const insertQuery = new QueryBuilder().from('ItemTable').insert({
           key,
-          value: jsonValue,
-          created_at: 'unixepoch()',
-          updated_at: 'unixepoch()'
+          value: jsonValue
         })
 
         await this.dbService.execute(this.dbPath, insertQuery)

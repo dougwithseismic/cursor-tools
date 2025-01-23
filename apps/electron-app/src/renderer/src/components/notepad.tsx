@@ -1,5 +1,5 @@
 import ReactMarkdown from 'react-markdown'
-import type { Notepad as NotepadType } from '../stores/notepad-store'
+import type { Notepad as NotepadType, NotepadContext } from '../stores/notepad-store'
 import { Pencil, Trash, ChevronDown, ChevronUp, X, Check } from 'lucide-react'
 import { useState } from 'react'
 
@@ -17,7 +17,57 @@ export function Notepad({ notepad, onEdit, onDelete, isLoading }: NotepadProps):
   const [editedText, setEditedText] = useState(notepad.text)
 
   const handleSave = async (): Promise<void> => {
-    await onEdit({ id: notepad.id, name: editedName, text: editedText })
+    // Create a sanitized copy of the notepad data
+    const sanitizedNotepad: NotepadType = {
+      id: notepad.id,
+      name: editedName,
+      text: editedText,
+      createdAt: notepad.createdAt,
+      workspaceId: notepad.workspaceId,
+      context: notepad.context
+        ? {
+            editTrailContexts: [],
+            externalLinks: [],
+            fileSelections: [],
+            folderSelections: [],
+            mentions: {
+              diffHistory: [],
+              editTrailContexts: {},
+              externalLinks: {},
+              fileSelections: {},
+              folderSelections: {},
+              gitDiff: [],
+              gitDiffFromBranchToMain: [],
+              notepads: {},
+              quotes: {},
+              selectedCommits: {},
+              selectedDocs: {},
+              selectedImages: {},
+              selectedPullRequests: {},
+              selections: {},
+              terminalFiles: {},
+              terminalSelections: {},
+              useContextPicking: [],
+              useDiffReview: [],
+              useLinterErrors: [],
+              useRememberThis: [],
+              useWeb: [],
+              usesCodebase: []
+            },
+            notepads: [],
+            quotes: [],
+            selectedCommits: [],
+            selectedDocs: [],
+            selectedImages: [],
+            selectedPullRequests: [],
+            selections: [],
+            terminalFiles: [],
+            terminalSelections: []
+          }
+        : undefined
+    }
+
+    await onEdit(sanitizedNotepad)
     setIsEditing(false)
   }
 

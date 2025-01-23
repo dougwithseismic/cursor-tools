@@ -26,7 +26,8 @@ export class DatabaseService {
           filename: dbPath,
           driver: sqlite3.Database
         })
-        await this.initializeSchema(connection)
+        // Verify connection by running a simple query
+        await connection.get('SELECT 1')
         this.dbConnections.set(dbPath, connection)
       } catch (error) {
         throw new DatabaseError(
@@ -37,31 +38,6 @@ export class DatabaseService {
       }
     }
     return connection
-  }
-
-  /**
-   * Initializes the database schema if it doesn't exist
-   */
-  private async initializeSchema(db: Database): Promise<void> {
-    try {
-      await db.exec(`
-        CREATE TABLE IF NOT EXISTS ItemTable (
-          key TEXT PRIMARY KEY,
-          value TEXT NOT NULL,
-          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-          updated_at INTEGER NOT NULL DEFAULT (unixepoch())
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_item_created_at ON ItemTable(created_at);
-        CREATE INDEX IF NOT EXISTS idx_item_updated_at ON ItemTable(updated_at);
-      `)
-    } catch (error) {
-      throw new DatabaseError(
-        'Failed to initialize database schema',
-        'init_schema',
-        error instanceof Error ? error : undefined
-      )
-    }
   }
 
   /**
@@ -86,26 +62,16 @@ export class DatabaseService {
    */
   public async set<T>(dbPath: string, key: string, value: T): Promise<void> {
     const db = await this.getConnection(dbPath)
-    let jsonValue: string
-
-    try {
-      jsonValue = JSON.stringify(value)
-    } catch (error) {
-      throw new JsonError(
-        `Failed to stringify value for key '${key}'`,
-        'stringify',
-        error instanceof Error ? error : new Error('Unknown error')
-      )
-    }
+    const jsonValue = JSON.stringify(value)
 
     try {
       await db.run(
-        `INSERT INTO ItemTable (key, value, updated_at) 
-         VALUES (?, ?, unixepoch()) 
+        `INSERT INTO ItemTable (key, value) 
+         VALUES (?, ?) 
          ON CONFLICT(key) DO UPDATE SET 
-         value = excluded.value,
-         updated_at = excluded.updated_at`,
+         value = ?`,
         key,
+        jsonValue,
         jsonValue
       )
     } catch (error) {
