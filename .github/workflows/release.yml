@@ -24,12 +24,6 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Setup Windows build tools
-        shell: powershell
-        run: |
-          pnpm config set msvs_version 2019 --location project
-          pnpm config set python ${{ env.pythonLocation }} --location project
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
@@ -50,11 +44,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
+      - name: Setup Windows build tools
+        shell: powershell
+        run: |
+          npm config set msvs_version 2019 --location project
+          npm config set python ${{ env.pythonLocation }} --location project
+
       - name: Install and build
         env:
           NODE_ENV: production
           npm_config_build_from_source: true
           PYTHON: ${{ env.pythonLocation }}
+          npm_config_msvs_version: 2019
         run: |
           pnpm install --frozen-lockfile
           pnpm turbo run build --filter=electron-app...
